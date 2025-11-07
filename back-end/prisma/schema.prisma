@@ -1,0 +1,111 @@
+// Walrus Storage Marketplace - Prisma Schema
+// Event indexer database schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== INDEXER STATE =====
+
+/// Tracks indexing position for each event type (resumable processing)
+model EventCursor {
+  id          String   @id              // Format: "marketplace::EventName"
+  eventSeq    String                    // Event sequence number
+  txDigest    String                    // Transaction digest
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@map("event_cursor")
+}
+
+// ===== EVENT HISTORY (Append-Only Audit Trail) =====
+
+/// Storage listed events - complete history
+model StorageListedEvent {
+  id                      String   @id @default(uuid())
+  storageId               String                    // Sui storage object ID
+  seller                  String                    // Seller address
+  size                    BigInt                    // Storage size in bytes
+  startEpoch              Int                       // Start epoch (inclusive)
+  endEpoch                Int                       // End epoch (exclusive)
+  totalPrice              BigInt                    // Total price for the listing
+  txDigest                String                    // Transaction digest
+  eventSeq                String                    // Event sequence
+  blockTime               DateTime?                 // Block timestamp
+  createdAt               DateTime @default(now())  // Indexed at timestamp
+
+  @@index([storageId])
+  @@index([seller])
+  @@index([createdAt])
+  @@map("storage_listed_events")
+}
+
+/// Storage purchased events - complete history
+model StoragePurchasedEvent {
+  id                    String   @id @default(uuid())
+  storageId             String                    // Sui storage object ID
+  buyer                 String                    // Buyer address
+  seller                String                    // Seller address
+  amountPaid            BigInt                    // Amount paid in WAL
+  purchaseType          String                    // "full", "partial_epoch", "partial_size"
+  purchasedSize         BigInt                    // Size purchased
+  purchasedStartEpoch   Int                       // Start epoch of purchased portion
+  purchasedEndEpoch     Int                       // End epoch of purchased portion
+  txDigest              String                    // Transaction digest
+  eventSeq              String                    // Event sequence
+  blockTime             DateTime?                 // Block timestamp
+  createdAt             DateTime @default(now())  // Indexed at timestamp
+
+  @@index([storageId])
+  @@index([buyer])
+  @@index([seller])
+  @@index([purchaseType])
+  @@index([createdAt])
+  @@map("storage_purchased_events")
+}
+
+/// Storage delisted events - complete history
+model StorageDelistedEvent {
+  id          String   @id @default(uuid())
+  storageId   String                    // Sui storage object ID
+  seller      String                    // Seller address
+  txDigest    String                    // Transaction digest
+  eventSeq    String                    // Event sequence
+  blockTime   DateTime?                 // Block timestamp
+  createdAt   DateTime @default(now())  // Indexed at timestamp
+
+  @@index([storageId])
+  @@index([seller])
+  @@index([createdAt])
+  @@map("storage_delisted_events")
+}
+
+// ===== CURRENT STATE (Mutable - Active Listings Only) =====
+
+/// Active listed storage - represents current marketplace state
+model ListedStorage {
+  id                      String   @id @default(uuid())
+  storageId               String   @unique           // Sui storage object ID - unique (only one active state)
+  seller                  String                     // Seller address
+  size                    BigInt                     // Current size available in bytes
+  startEpoch              Int                        // Current start epoch (inclusive)
+  endEpoch                Int                        // Current end epoch (exclusive)
+  totalPrice              BigInt                     // Current total price
+  listedAt                DateTime @default(now())   // First listed timestamp
+  lastUpdatedAt           DateTime @updatedAt        // Last update timestamp
+  lastTxDigest            String                     // Last transaction digest
+  lastEventSeq            String                     // Last event sequence
+
+  @@index([seller])
+  @@index([totalPrice])
+  @@index([size])
+  @@index([startEpoch])
+  @@index([endEpoch])
+  @@index([listedAt])
+  @@map("listed_storage")
+}
