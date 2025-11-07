@@ -405,11 +405,28 @@ export class WalrusStorageOptimizer {
 }
 
 export interface StorageOperation {
-  type: 'pay_seller' | 'split_by_epoch' | 'split_by_size' | 'reserve_space' | 'fuse' | 'fuse_amount' | 'fuse_periods';
+  type: 'buy_full_storage' | 'buy_partial_storage_size' | 'buy_partial_storage_epoch' |
+        'split_by_epoch' | 'split_by_size' | 'fuse_period' | 'fuse_amount' | 'reserve_space';
   description: string;
-  resultId?: string;
-  seller?: string; // seller address for pay_seller operations
-  amount?: bigint; // payment amount for pay_seller operations
+
+  // For marketplace purchase operations (buy_*)
+  storageObjectId?: string;
+
+  // For buy_partial_storage_size
+  splitSize?: bigint;
+
+  // For buy_partial_storage_epoch
+  splitStartEpoch?: number;
+  splitEndEpoch?: number;
+
+  // For split operations (when performed on already-owned storage)
+  splitEpoch?: number; // for split_by_epoch
+
+  // For reserve_space operations
+  reserveSize?: bigint;
+  startEpoch?: number;
+  endEpoch?: number;
+  cost?: bigint;
 }
 
 // Export function for generating the operations needed to create a single Storage object
@@ -420,120 +437,142 @@ export function generateStorageOperations(
   requestSize: bigint
 ): StorageOperation[] {
   const operations: StorageOperation[] = [];
-  const objectIds: string[] = [];
-  let operationCounter = 0;
 
-  // Step 0: Add payment operations for sellers
+  // Step 1: Process each allocation - determine buy operation type
   for (const allocation of result.allocations) {
-    if (allocation.seller && allocation.sellerPayment > 0n) {
-      operations.push({
-        type: 'pay_seller',
-        description: `pay_seller(${allocation.seller}, ${allocation.sellerPayment} FROST) → payment for ${Number(allocation.usedSize) / (1024 * 1024)}MB from epochs ${allocation.usedStartEpoch}-${allocation.usedEndEpoch}`,
-        seller: allocation.seller,
-        amount: allocation.sellerPayment
-      });
-    }
-  }
-
-  // Step 1: Process each allocation - split to extract the exact portion needed
-  for (let i = 0; i < result.allocations.length; i++) {
-    const allocation = result.allocations[i];
     const storage = allocation.storageObject;
-    let currentId = storage.id;
 
-    // Split by epoch if needed (start)
-    if (allocation.usedStartEpoch > storage.startEpoch) {
-      const newId = `${storage.id}_split_${++operationCounter}`;
+    // Check if we're buying the full storage object or partial
+    const buyingFullSize = allocation.usedSize === storage.storageSize;
+    const buyingFullEpochRange = allocation.usedStartEpoch === storage.startEpoch &&
+                                  allocation.usedEndEpoch === storage.endEpoch;
+
+    if (buyingFullSize && buyingFullEpochRange) {
+      // Case 1: Buy the entire storage object as-is
       operations.push({
-        type: 'split_by_epoch',
-        description: `split_by_epoch(${currentId}, ${allocation.usedStartEpoch}) → returns ${newId} (epochs ${allocation.usedStartEpoch}-${storage.endEpoch})`,
-        resultId: newId
+        type: 'buy_full_storage',
+        storageObjectId: storage.id,
+        description: `buy_full_storage(${storage.id}) → ${Number(allocation.usedSize) / (1024 * 1024)}MB for epochs ${allocation.usedStartEpoch}-${allocation.usedEndEpoch}`
       });
-      currentId = newId;
-    }
-
-    // Split by epoch if needed (end)
-    if (allocation.usedEndEpoch < storage.endEpoch) {
-      const newId = `${storage.id}_split_${++operationCounter}`;
+    } else if (!buyingFullSize && buyingFullEpochRange) {
+      // Case 2: Buy partial size, full epoch range (atomic split by size)
       operations.push({
-        type: 'split_by_epoch',
-        description: `split_by_epoch(${currentId}, ${allocation.usedEndEpoch}) → returns ${newId} (epochs ${allocation.usedEndEpoch}-${storage.endEpoch})`,
-        resultId: newId
+        type: 'buy_partial_storage_size',
+        storageObjectId: storage.id,
+        splitSize: allocation.usedSize,
+        description: `buy_partial_storage_size(${storage.id}, ${allocation.usedSize} bytes) → ${Number(allocation.usedSize) / (1024 * 1024)}MB for epochs ${allocation.usedStartEpoch}-${allocation.usedEndEpoch}`
       });
-      // currentId remains the same as the original is modified to be start-split_epoch
-    }
-
-    // Split by size if needed
-    if (allocation.usedSize < storage.storageSize) {
-      const newId = `${storage.id}_split_${++operationCounter}`;
+    } else if (buyingFullSize && !buyingFullEpochRange) {
+      // Case 3: Buy full size, partial epoch range (atomic split by epoch)
       operations.push({
-        type: 'split_by_size',
-        description: `split_by_size(${currentId}, ${allocation.usedSize}) → returns ${newId} (size: ${storage.storageSize - allocation.usedSize} bytes)`,
-        resultId: newId
+        type: 'buy_partial_storage_epoch',
+        storageObjectId: storage.id,
+        splitStartEpoch: allocation.usedStartEpoch,
+        splitEndEpoch: allocation.usedEndEpoch,
+        description: `buy_partial_storage_epoch(${storage.id}, epochs ${allocation.usedStartEpoch}-${allocation.usedEndEpoch}) → ${Number(allocation.usedSize) / (1024 * 1024)}MB`
       });
-      // currentId remains the same as the original is modified to have split_size
-    }
+    } else {
+      // Case 4: Buy partial size AND partial epoch range
+      // This requires buying full object first, then splitting
+      operations.push({
+        type: 'buy_full_storage',
+        storageObjectId: storage.id,
+        description: `buy_full_storage(${storage.id}) → to be split`
+      });
 
-    // Track the final object ID for this allocation
-    objectIds.push(currentId);
+      // Split by epoch first if needed
+      if (allocation.usedStartEpoch > storage.startEpoch || allocation.usedEndEpoch < storage.endEpoch) {
+        if (allocation.usedStartEpoch > storage.startEpoch) {
+          operations.push({
+            type: 'split_by_epoch',
+            splitEpoch: allocation.usedStartEpoch,
+            description: `split_by_epoch(${allocation.usedStartEpoch}) → keep portion from ${allocation.usedStartEpoch} onwards`
+          });
+        }
+        if (allocation.usedEndEpoch < storage.endEpoch) {
+          operations.push({
+            type: 'split_by_epoch',
+            splitEpoch: allocation.usedEndEpoch,
+            description: `split_by_epoch(${allocation.usedEndEpoch}) → keep portion before ${allocation.usedEndEpoch}`
+          });
+        }
+      }
+
+      // Then split by size if needed
+      if (allocation.usedSize < storage.storageSize) {
+        operations.push({
+          type: 'split_by_size',
+          splitSize: allocation.usedSize,
+          description: `split_by_size(${allocation.usedSize} bytes) → keep ${Number(allocation.usedSize) / (1024 * 1024)}MB`
+        });
+      }
+    }
   }
 
   // Step 2: Reserve new storage if needed
   if (result.needsNewReservation) {
-    const reservedId = `reserved_storage_${++operationCounter}`;
     operations.push({
       type: 'reserve_space',
-      description: `reserve_space(size: ${result.needsNewReservation.size} bytes, epochs: ${result.needsNewReservation.epochs}) → ${reservedId}`,
-      resultId: reservedId
+      reserveSize: result.needsNewReservation.size,
+      startEpoch: requestStartEpoch,
+      endEpoch: requestEndEpoch,
+      cost: result.needsNewReservation.cost,
+      description: `reserve_space(${Number(result.needsNewReservation.size) / (1024 * 1024)}MB, epochs ${requestStartEpoch}-${requestEndEpoch}) → cost: ${result.needsNewReservation.cost} FROST`
     });
-    objectIds.push(reservedId);
   }
 
-  // Step 3: Fuse all objects into a single Storage object
-  if (objectIds.length > 1) {
-    // Sort allocations to determine fusion strategy
-    const sortedAllocations = [...result.allocations].sort((a, b) => a.usedStartEpoch - b.usedStartEpoch);
-
-    // Determine if we can fuse by periods or need to fuse by amount
-    const sameEpochRange = sortedAllocations.every(
+  // Step 3: Fuse all storage objects into one if we have multiple pieces
+  if (result.allocations.length > 1 || (result.allocations.length > 0 && result.needsNewReservation)) {
+    // Determine fusion strategy based on allocation characteristics
+    const allSameEpochRange = result.allocations.every(
       a => a.usedStartEpoch === requestStartEpoch && a.usedEndEpoch === requestEndEpoch
     );
 
-    if (sameEpochRange) {
-      // All objects cover the same period - fuse by amount (size)
-      let mainId = objectIds[0];
-      for (let i = 1; i < objectIds.length; i++) {
+    if (allSameEpochRange && (!result.needsNewReservation ||
+        (requestStartEpoch === requestStartEpoch && requestEndEpoch === requestEndEpoch))) {
+      // All objects cover the same period - fuse by amount (combining sizes)
+      const fuseCount = result.allocations.length + (result.needsNewReservation ? 1 : 0) - 1;
+      for (let i = 0; i < fuseCount; i++) {
         operations.push({
           type: 'fuse_amount',
-          description: `fuse_amount(${mainId}, ${objectIds[i]}) → combines storage amounts into ${mainId}`,
-          resultId: mainId
+          description: `fuse_amount() → combine storage amounts (same epoch range)`
         });
       }
-      operations.push({
-        type: 'fuse',
-        description: `✓ Final Storage object: ${mainId} (size: ${requestSize} bytes, epochs: ${requestStartEpoch}-${requestEndEpoch}, cost: ${result.totalCost} FROST)`
-      });
     } else {
-      // Objects cover different periods - need complex fusion
-      // First, fuse objects with same size but adjacent periods
-      let mainId = objectIds[0];
-      for (let i = 1; i < objectIds.length; i++) {
-        operations.push({
-          type: 'fuse',
-          description: `fuse(${mainId}, ${objectIds[i]}) → merges into ${mainId}`,
-          resultId: mainId
-        });
+      // Objects cover different periods or mixed - use period fusion
+      // Sort allocations by start epoch
+      const sortedAllocations = [...result.allocations].sort((a, b) => a.usedStartEpoch - b.usedStartEpoch);
+
+      // Check if we can use fuse_period (adjacent periods, same size)
+      let canUseFusePeriod = true;
+      for (let i = 0; i < sortedAllocations.length - 1; i++) {
+        if (sortedAllocations[i].usedEndEpoch !== sortedAllocations[i + 1].usedStartEpoch ||
+            sortedAllocations[i].usedSize !== sortedAllocations[i + 1].usedSize) {
+          canUseFusePeriod = false;
+          break;
+        }
       }
-      operations.push({
-        type: 'fuse',
-        description: `✓ Final Storage object: ${mainId} (size: ${requestSize} bytes, epochs: ${requestStartEpoch}-${requestEndEpoch}, cost: ${result.totalCost} FROST)`
-      });
+
+      if (canUseFusePeriod) {
+        const fuseCount = sortedAllocations.length - 1;
+        for (let i = 0; i < fuseCount; i++) {
+          operations.push({
+            type: 'fuse_period',
+            description: `fuse_period() → merge adjacent time periods (same size)`
+          });
+        }
+      } else {
+        // Complex case: need multiple fusion operations
+        // This is a simplified approach - may need refinement based on actual requirements
+        const totalFusions = result.allocations.length + (result.needsNewReservation ? 1 : 0) - 1;
+        for (let i = 0; i < totalFusions; i++) {
+          operations.push({
+            type: 'fuse_amount',
+            description: `fuse_amount() → combine storage objects`
+          });
+        }
+      }
     }
-  } else if (objectIds.length === 1) {
-    operations.push({
-      type: 'fuse',
-      description: `✓ Final Storage object: ${objectIds[0]} (size: ${requestSize} bytes, epochs: ${requestStartEpoch}-${requestEndEpoch}, cost: ${result.totalCost} FROST)`
-    });
   }
 
   return operations;
