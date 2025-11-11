@@ -21,7 +21,7 @@ export function DashboardLayout({
   showNavbarActions = true,
 }: DashboardLayoutProps) {
   return (
-    <div className="w-full max-w-7xl mx-auto backdrop-blur-xl bg-white/30 border-4 border-black rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+    <div className="w-full">
       <Navbar
         title={title}
         showMobileMenu={showMobileMenu}
