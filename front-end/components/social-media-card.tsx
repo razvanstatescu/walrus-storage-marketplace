@@ -11,7 +11,7 @@ interface SocialMediaCardProps {
 
 export default function SocialMediaCard({ platform, username, icon, color }: SocialMediaCardProps) {
   return (
-    <Card className="border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+    <Card className="border-4 border-[#97f0e5] rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
       <div className={cn("p-4 text-white", color)}>
         <div className="flex justify-between items-center">
           {icon}

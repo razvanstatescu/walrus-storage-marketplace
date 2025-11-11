@@ -16,15 +16,15 @@ export function ShadowCard({
   shadowSize = "md",
 }: ShadowCardProps) {
   const shadowSizes = {
-    sm: "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
-    md: "shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]",
-    lg: "shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]",
+    sm: "shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]",
+    md: "shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]",
+    lg: "shadow-[12px_12px_0px_0px_rgba(151,240,229,1)]",
   };
 
   return (
     <div
       className={cn(
-        "border-4 border-black rounded-xl bg-white",
+        "border-4 border-[#97f0e5] rounded-xl bg-white",
         shadowSizes[shadowSize],
         className
       )}

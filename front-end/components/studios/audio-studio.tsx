@@ -67,8 +67,8 @@ export default function AudioStudio({ onBack }: AudioStudioProps) {
   }
 
   return (
-    <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-      <Button variant="outline" className="mb-4 border-2 border-black rounded-xl font-bold" onClick={onBack}>
+    <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
+      <Button variant="outline" className="mb-4 border-2 border-[#97f0e5] rounded-xl font-bold" onClick={onBack}>
         Back to Studios
       </Button>
 
@@ -78,7 +78,7 @@ export default function AudioStudio({ onBack }: AudioStudioProps) {
 
           {/* Audio upload section */}
           <div className="mb-6">
-            <div className="border-4 border-dashed border-black rounded-xl p-4 sm:p-8 text-center mb-4">
+            <div className="border-4 border-dashed border-[#97f0e5] rounded-xl p-4 sm:p-8 text-center mb-4">
               {audioFile ? (
                 <div>
                   <Music className="mx-auto h-8 w-8 sm:h-10 sm:w-10 mb-2" />
@@ -91,7 +91,7 @@ export default function AudioStudio({ onBack }: AudioStudioProps) {
                   <p className="mb-2">Drop your audio file here or</p>
                   <Button
                     variant="outline"
-                    className="border-2 border-black rounded-xl font-bold"
+                    className="border-2 border-[#97f0e5] rounded-xl font-bold"
                     onClick={() => document.getElementById("audio-upload")?.click()}
                   >
                     <Upload className="h-4 w-4 mr-2" /> Select File
@@ -109,23 +109,23 @@ export default function AudioStudio({ onBack }: AudioStudioProps) {
           </div>
 
           {/* Waveform visualization */}
-          <div className="mb-6 bg-white/50 border-4 border-black rounded-xl p-4">
-            <div className="bg-white border-2 border-black rounded-lg p-2">
+          <div className="mb-6 bg-white/50 border-4 border-[#97f0e5] rounded-xl p-4">
+            <div className="bg-white border-2 border-[#97f0e5] rounded-lg p-2">
               <canvas ref={canvasRef} width={800} height={150} className="w-full h-[100px] sm:h-[150px]" />
             </div>
 
             {/* Playback controls */}
             <div className="flex items-center justify-center gap-2 mt-4">
-              <Button variant="outline" className="border-2 border-black rounded-xl h-10 w-10 p-0">
+              <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl h-10 w-10 p-0">
                 <SkipBack className="h-4 w-4" />
               </Button>
               <Button
-                className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black h-12 w-12 p-0"
+                className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] h-12 w-12 p-0"
                 onClick={() => setIsPlaying(!isPlaying)}
               >
                 {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
               </Button>
-              <Button variant="outline" className="border-2 border-black rounded-xl h-10 w-10 p-0">
+              <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl h-10 w-10 p-0">
                 <SkipForward className="h-4 w-4" />
               </Button>
             </div>
@@ -134,11 +134,11 @@ export default function AudioStudio({ onBack }: AudioStudioProps) {
           {/* Mobile-only controls */}
           <div className="block lg:hidden mb-6">
             <Collapsible>
-              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-black text-white rounded-xl font-bold">
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-[#97f0e5] text-black rounded-xl font-bold">
                 <span>Audio Controls</span>
                 <ChevronDown className="h-5 w-5" />
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-3 space-y-4 p-4 border-2 border-black rounded-xl">
+              <CollapsibleContent className="mt-3 space-y-4 p-4 border-2 border-[#97f0e5] rounded-xl">
                 <div>
                   <div className="flex justify-between mb-2">
                     <Label className="font-bold">Volume</Label>
@@ -172,10 +172,10 @@ export default function AudioStudio({ onBack }: AudioStudioProps) {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mt-4">
-                  <Button className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold">
+                  <Button className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold">
                     <Save className="h-4 w-4 mr-2" /> Save
                   </Button>
-                  <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                  <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                     <Download className="h-4 w-4 mr-2" /> Export
                   </Button>
                 </div>
@@ -186,22 +186,22 @@ export default function AudioStudio({ onBack }: AudioStudioProps) {
 
         {/* Desktop-only controls panel */}
         <div className="hidden lg:block w-[300px]">
-          <Card className="border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="bg-gradient-to-br from-pink-500 to-orange-500 p-4 text-white">
               <h3 className="text-xl font-bold">Audio Controls</h3>
             </div>
             <div className="p-4 bg-white">
               <Tabs defaultValue="mixer">
-                <TabsList className="bg-white/50 border-2 border-black rounded-xl p-1 mb-4 w-full">
+                <TabsList className="bg-white/50 border-2 border-[#97f0e5] rounded-xl p-1 mb-4 w-full">
                   <TabsTrigger
                     value="mixer"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Mixer
                   </TabsTrigger>
                   <TabsTrigger
                     value="effects"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Effects
                   </TabsTrigger>
@@ -265,10 +265,10 @@ export default function AudioStudio({ onBack }: AudioStudioProps) {
               </Tabs>
 
               <div className="mt-6 space-y-3">
-                <Button className="w-full bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold">
+                <Button className="w-full bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold">
                   <Save className="h-4 w-4 mr-2" /> Save Project
                 </Button>
-                <Button variant="outline" className="w-full border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="w-full border-2 border-[#97f0e5] rounded-xl font-bold">
                   <Download className="h-4 w-4 mr-2" /> Export Audio
                 </Button>
               </div>

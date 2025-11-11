@@ -84,19 +84,19 @@ export default function VideoStudioPage() {
       <div className="grid lg:grid-cols-[1fr_350px] gap-6">
         <div className="space-y-6">
           {/* Video upload section */}
-          <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <h3 className="text-xl font-bold mb-4">Video Source</h3>
             {videoFile ? (
-              <div className="border-4 border-black rounded-xl overflow-hidden bg-black mb-4">
+              <div className="border-4 border-[#97f0e5] rounded-xl overflow-hidden bg-black mb-4">
                 <video ref={videoRef} className="w-full aspect-video" controls={false} />
               </div>
             ) : (
-              <div className="border-4 border-dashed border-black rounded-xl p-4 sm:p-8 text-center mb-4 aspect-video flex flex-col items-center justify-center">
+              <div className="border-4 border-dashed border-[#97f0e5] rounded-xl p-4 sm:p-8 text-center mb-4 aspect-video flex flex-col items-center justify-center">
                 <Film className="h-12 w-12 sm:h-16 sm:w-16 mb-4 opacity-50" />
                 <p className="mb-4">Drop your video file here or</p>
                 <Button
                   variant="outline"
-                  className="border-2 border-black rounded-xl font-bold"
+                  className="border-2 border-[#97f0e5] rounded-xl font-bold"
                   onClick={() => document.getElementById("video-upload")?.click()}
                 >
                   <Upload className="h-4 w-4 mr-2" /> Select Video
@@ -106,16 +106,16 @@ export default function VideoStudioPage() {
             )}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+              <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                 <Film className="h-4 w-4 mr-2" /> Record
               </Button>
-              <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+              <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                 <Film className="h-4 w-4 mr-2" /> Stock Video
               </Button>
-              <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+              <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                 <Wand2 className="h-4 w-4 mr-2" /> Generate
               </Button>
-              <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+              <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                 <Sparkles className="h-4 w-4 mr-2" /> Enhance
               </Button>
             </div>
@@ -123,13 +123,13 @@ export default function VideoStudioPage() {
 
           {/* Timeline */}
           {videoFile && (
-            <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
               <h3 className="text-xl font-bold mb-4">Timeline</h3>
-              <div className="bg-white/50 border-4 border-black rounded-xl p-4">
-                <div className="bg-white border-2 border-black rounded-lg p-2 h-[80px] sm:h-[100px] mb-4">
+              <div className="bg-white/50 border-4 border-[#97f0e5] rounded-xl p-4">
+                <div className="bg-white border-2 border-[#97f0e5] rounded-lg p-2 h-[80px] sm:h-[100px] mb-4">
                   {/* Timeline tracks would go here */}
                   <div className="flex h-full">
-                    <div className="w-12 sm:w-16 h-full border-r-2 border-black flex flex-col justify-center items-center">
+                    <div className="w-12 sm:w-16 h-full border-r-2 border-[#97f0e5] flex flex-col justify-center items-center">
                       <Film className="h-4 w-4 sm:h-5 sm:w-5" />
                       <span className="text-xs font-bold mt-1">Video</span>
                     </div>
@@ -143,16 +143,16 @@ export default function VideoStudioPage() {
 
                 {/* Playback controls */}
                 <div className="flex items-center justify-center gap-2">
-                  <Button variant="outline" className="border-2 border-black rounded-xl h-10 w-10 p-0">
+                  <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl h-10 w-10 p-0">
                     <SkipBack className="h-4 w-4" />
                   </Button>
                   <Button
-                    className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black h-12 w-12 p-0"
+                    className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] h-12 w-12 p-0"
                     onClick={togglePlay}
                   >
                     {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                   </Button>
-                  <Button variant="outline" className="border-2 border-black rounded-xl h-10 w-10 p-0">
+                  <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl h-10 w-10 p-0">
                     <SkipForward className="h-4 w-4" />
                   </Button>
                 </div>
@@ -179,7 +179,7 @@ export default function VideoStudioPage() {
           )}
 
           {/* AI Video Processing */}
-          <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="h-5 w-5" />
               <h3 className="text-xl font-bold">AI Video Assistant</h3>
@@ -190,7 +190,7 @@ export default function VideoStudioPage() {
                 <Label className="font-bold mb-2 block">What would you like to do with your video?</Label>
                 <Textarea
                   placeholder="E.g., Enhance colors, stabilize footage, generate captions, create a highlight reel..."
-                  className="min-h-[80px] border-2 border-black rounded-xl"
+                  className="min-h-[80px] border-2 border-[#97f0e5] rounded-xl"
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                 />
@@ -198,7 +198,7 @@ export default function VideoStudioPage() {
 
               <div className="flex justify-end">
                 <Button
-                  className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold"
+                  className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold"
                   onClick={handleAIProcess}
                   disabled={isProcessing || !aiPrompt.trim()}
                 >
@@ -215,7 +215,7 @@ export default function VideoStudioPage() {
               </div>
 
               {aiResponse && (
-                <div className="mt-4 p-4 bg-white/50 border-2 border-black rounded-xl">
+                <div className="mt-4 p-4 bg-white/50 border-2 border-[#97f0e5] rounded-xl">
                   <div className="flex items-start gap-3">
                     <MessageSquare className="h-5 w-5 mt-0.5" />
                     <div>
@@ -231,55 +231,55 @@ export default function VideoStudioPage() {
 
         {/* Controls panel */}
         <div className="space-y-6">
-          <Card className="border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 text-white">
               <h3 className="text-xl font-bold">Video Controls</h3>
             </div>
             <div className="p-4 bg-white">
               <Tabs defaultValue="edit">
-                <TabsList className="bg-white/50 border-2 border-black rounded-xl p-1 mb-4 w-full">
+                <TabsList className="bg-white/50 border-2 border-[#97f0e5] rounded-xl p-1 mb-4 w-full">
                   <TabsTrigger
                     value="edit"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Edit
                   </TabsTrigger>
                   <TabsTrigger
                     value="effects"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Effects
                   </TabsTrigger>
                   <TabsTrigger
                     value="text"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Text
                   </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="edit" className="space-y-4">
-                  <Button variant="outline" className="w-full border-2 border-black rounded-xl font-bold flex gap-2">
+                  <Button variant="outline" className="w-full border-2 border-[#97f0e5] rounded-xl font-bold flex gap-2">
                     <Scissors className="h-4 w-4" /> Split Clip
                   </Button>
 
-                  <Button variant="outline" className="w-full border-2 border-black rounded-xl font-bold flex gap-2">
+                  <Button variant="outline" className="w-full border-2 border-[#97f0e5] rounded-xl font-bold flex gap-2">
                     <Layers className="h-4 w-4" /> Add Layer
                   </Button>
 
                   <div>
                     <Label className="font-bold mb-2 block">Crop</Label>
                     <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                      <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                         16:9
                       </Button>
-                      <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                      <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                         1:1
                       </Button>
-                      <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                      <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                         4:5
                       </Button>
-                      <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                      <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                         9:16
                       </Button>
                     </div>
@@ -309,22 +309,22 @@ export default function VideoStudioPage() {
                 </TabsContent>
 
                 <TabsContent value="text" className="space-y-4">
-                  <Button variant="outline" className="w-full border-2 border-black rounded-xl font-bold flex gap-2">
+                  <Button variant="outline" className="w-full border-2 border-[#97f0e5] rounded-xl font-bold flex gap-2">
                     <Text className="h-4 w-4" /> Add Title
                   </Button>
 
-                  <Button variant="outline" className="w-full border-2 border-black rounded-xl font-bold flex gap-2">
+                  <Button variant="outline" className="w-full border-2 border-[#97f0e5] rounded-xl font-bold flex gap-2">
                     <Text className="h-4 w-4" /> Add Caption
                   </Button>
 
-                  <Button variant="outline" className="w-full border-2 border-black rounded-xl font-bold flex gap-2">
+                  <Button variant="outline" className="w-full border-2 border-[#97f0e5] rounded-xl font-bold flex gap-2">
                     <ImageIcon className="h-4 w-4" /> Add Sticker
                   </Button>
 
                   <div>
                     <Label className="font-bold mb-2 block">Auto-Generate Captions</Label>
                     <Select defaultValue="english">
-                      <SelectTrigger className="border-2 border-black rounded-xl">
+                      <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                         <SelectValue placeholder="Select language" />
                       </SelectTrigger>
                       <SelectContent>
@@ -340,7 +340,7 @@ export default function VideoStudioPage() {
             </div>
           </Card>
 
-          <Card className="border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="bg-gradient-to-br from-blue-500 to-purple-500 p-4 text-white">
               <h3 className="text-xl font-bold">Export Options</h3>
             </div>
@@ -348,7 +348,7 @@ export default function VideoStudioPage() {
               <div>
                 <Label className="font-bold mb-2 block">File Format</Label>
                 <Select defaultValue="mp4">
-                  <SelectTrigger className="border-2 border-black rounded-xl">
+                  <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                     <SelectValue placeholder="Select format" />
                   </SelectTrigger>
                   <SelectContent>
@@ -363,7 +363,7 @@ export default function VideoStudioPage() {
               <div>
                 <Label className="font-bold mb-2 block">Resolution</Label>
                 <Select defaultValue="1080p">
-                  <SelectTrigger className="border-2 border-black rounded-xl">
+                  <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                     <SelectValue placeholder="Select resolution" />
                   </SelectTrigger>
                   <SelectContent>
@@ -376,10 +376,10 @@ export default function VideoStudioPage() {
               </div>
 
               <div className="pt-2 space-y-3">
-                <Button className="w-full bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold">
+                <Button className="w-full bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold">
                   <Save className="h-4 w-4 mr-2" /> Save Project
                 </Button>
-                <Button variant="outline" className="w-full border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="w-full border-2 border-[#97f0e5] rounded-xl font-bold">
                   <Download className="h-4 w-4 mr-2" /> Export Video
                 </Button>
               </div>

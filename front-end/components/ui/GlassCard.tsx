@@ -13,7 +13,7 @@ export function GlassCard({ children, className }: GlassCardProps) {
   return (
     <div
       className={cn(
-        "backdrop-blur-md bg-white/50 border-2 border-black rounded-xl p-4",
+        "backdrop-blur-md bg-white/50 border-2 border-[#97f0e5] rounded-xl p-4",
         className
       )}
     >

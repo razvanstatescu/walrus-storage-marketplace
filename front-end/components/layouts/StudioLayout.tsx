@@ -24,9 +24,9 @@ export function StudioLayout({
   showHomeButton = true,
 }: StudioLayoutProps) {
   return (
-    <div className="w-full max-w-7xl mx-auto backdrop-blur-xl bg-white/30 border-4 border-black rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+    <div className="w-full max-w-7xl mx-auto backdrop-blur-xl bg-white/30 border-4 border-[#97f0e5] rounded-3xl shadow-[8px_8px_0px_0px_rgba(151,240,229,1)] overflow-hidden">
       {/* Header */}
-      <header className="border-b-4 border-black p-4 sm:p-6 bg-white/40 backdrop-blur-md">
+      <header className="border-b-4 border-[#97f0e5] p-4 sm:p-6 bg-white/40 backdrop-blur-md">
         <div className="flex justify-between items-center gap-4">
           <div className="flex items-center gap-3">
             {showBackButton && (
@@ -34,7 +34,7 @@ export function StudioLayout({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="rounded-xl border-2 border-black"
+                  className="rounded-xl border-2 border-[#97f0e5]"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
@@ -45,7 +45,7 @@ export function StudioLayout({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="rounded-xl border-2 border-black"
+                  className="rounded-xl border-2 border-[#97f0e5]"
                 >
                   <Home className="h-5 w-5" />
                 </Button>

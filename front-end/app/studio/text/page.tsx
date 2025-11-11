@@ -96,18 +96,18 @@ export default function TextStudioPage() {
       <div className="grid lg:grid-cols-[1fr_350px] gap-6">
         <div className="space-y-6">
           {/* Text editor section */}
-          <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <Tabs defaultValue="edit">
-              <TabsList className="bg-white/50 border-2 border-black rounded-xl p-1 mb-4 w-full">
+              <TabsList className="bg-white/50 border-2 border-[#97f0e5] rounded-xl p-1 mb-4 w-full">
                 <TabsTrigger
                   value="edit"
-                  className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                  className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                 >
                   Edit Text
                 </TabsTrigger>
                 <TabsTrigger
                   value="generate"
-                  className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                  className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                 >
                   Generate Text
                 </TabsTrigger>
@@ -124,27 +124,27 @@ export default function TextStudioPage() {
                 </div>
 
                 <Textarea
-                  className="min-h-[300px] border-2 border-black rounded-xl p-4 text-lg mb-4"
+                  className="min-h-[300px] border-2 border-[#97f0e5] rounded-xl p-4 text-lg mb-4"
                   placeholder="Enter or paste your text here..."
                   value={textContent}
                   onChange={handleTextChange}
                 />
 
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                  <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                     <Check className="h-4 w-4 mr-2" /> Spell Check
                   </Button>
-                  <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                  <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                     <RotateCcw className="h-4 w-4 mr-2" /> Undo
                   </Button>
                   <Button
                     variant="outline"
-                    className="border-2 border-black rounded-xl font-bold"
+                    className="border-2 border-[#97f0e5] rounded-xl font-bold"
                     onClick={handleCopyText}
                   >
                     <Copy className="h-4 w-4 mr-2" /> Copy
                   </Button>
-                  <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                  <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                     <Sparkles className="h-4 w-4 mr-2" /> Enhance
                   </Button>
                 </div>
@@ -157,7 +157,7 @@ export default function TextStudioPage() {
                     <Label className="font-bold mb-2 block">What would you like to create?</Label>
                     <Textarea
                       placeholder="E.g., Write a professional email to schedule a meeting, create a product description for a new smartphone..."
-                      className="min-h-[100px] border-2 border-black rounded-xl"
+                      className="min-h-[100px] border-2 border-[#97f0e5] rounded-xl"
                       value={generationPrompt}
                       onChange={(e) => setGenerationPrompt(e.target.value)}
                     />
@@ -167,7 +167,7 @@ export default function TextStudioPage() {
                     <div>
                       <Label className="font-bold mb-2 block">Tone</Label>
                       <Select defaultValue="professional">
-                        <SelectTrigger className="border-2 border-black rounded-xl">
+                        <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                           <SelectValue placeholder="Select tone" />
                         </SelectTrigger>
                         <SelectContent>
@@ -183,7 +183,7 @@ export default function TextStudioPage() {
                     <div>
                       <Label className="font-bold mb-2 block">Length</Label>
                       <Select defaultValue="medium">
-                        <SelectTrigger className="border-2 border-black rounded-xl">
+                        <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                           <SelectValue placeholder="Select length" />
                         </SelectTrigger>
                         <SelectContent>
@@ -198,7 +198,7 @@ export default function TextStudioPage() {
 
                   <div className="flex justify-end">
                     <Button
-                      className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold"
+                      className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold"
                       onClick={handleAIGenerate}
                       disabled={isProcessing || !generationPrompt.trim()}
                     >
@@ -224,13 +224,13 @@ export default function TextStudioPage() {
                           <span>Reading time: {textStats.readingTime}</span>
                         </div>
                       </div>
-                      <div className="border-2 border-black rounded-xl p-4 bg-white/50">
+                      <div className="border-2 border-[#97f0e5] rounded-xl p-4 bg-white/50">
                         <p>{generatedText}</p>
                       </div>
                       <div className="flex justify-end mt-2">
                         <Button
                           variant="outline"
-                          className="border-2 border-black rounded-xl font-bold"
+                          className="border-2 border-[#97f0e5] rounded-xl font-bold"
                           onClick={handleCopyText}
                         >
                           <Copy className="h-4 w-4 mr-2" /> Copy
@@ -244,7 +244,7 @@ export default function TextStudioPage() {
           </Card>
 
           {/* AI Text Processing */}
-          <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="h-5 w-5" />
               <h3 className="text-xl font-bold">AI Text Assistant</h3>
@@ -255,7 +255,7 @@ export default function TextStudioPage() {
                 <Label className="font-bold mb-2 block">What would you like to do with your text?</Label>
                 <Textarea
                   placeholder="E.g., Improve grammar, make it more concise, change the tone to be more professional..."
-                  className="min-h-[80px] border-2 border-black rounded-xl"
+                  className="min-h-[80px] border-2 border-[#97f0e5] rounded-xl"
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                 />
@@ -263,7 +263,7 @@ export default function TextStudioPage() {
 
               <div className="flex justify-end">
                 <Button
-                  className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold"
+                  className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold"
                   onClick={handleAIProcess}
                   disabled={isProcessing || !aiPrompt.trim() || !textContent.trim()}
                 >
@@ -280,7 +280,7 @@ export default function TextStudioPage() {
               </div>
 
               {aiResponse && (
-                <div className="mt-4 p-4 bg-white/50 border-2 border-black rounded-xl">
+                <div className="mt-4 p-4 bg-white/50 border-2 border-[#97f0e5] rounded-xl">
                   <div className="flex items-start gap-3">
                     <MessageSquare className="h-5 w-5 mt-0.5" />
                     <div>
@@ -296,22 +296,22 @@ export default function TextStudioPage() {
 
         {/* Controls panel */}
         <div className="space-y-6">
-          <Card className="border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="bg-gradient-to-br from-yellow-500 to-amber-500 p-4 text-white">
               <h3 className="text-xl font-bold">Text Controls</h3>
             </div>
             <div className="p-4 bg-white">
               <Tabs defaultValue="format">
-                <TabsList className="bg-white/50 border-2 border-black rounded-xl p-1 mb-4 w-full">
+                <TabsList className="bg-white/50 border-2 border-[#97f0e5] rounded-xl p-1 mb-4 w-full">
                   <TabsTrigger
                     value="format"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Format
                   </TabsTrigger>
                   <TabsTrigger
                     value="analyze"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Analyze
                   </TabsTrigger>
@@ -321,7 +321,7 @@ export default function TextStudioPage() {
                   <div>
                     <Label className="font-bold mb-2 block">Text Style</Label>
                     <Select defaultValue="paragraph">
-                      <SelectTrigger className="border-2 border-black rounded-xl">
+                      <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                         <SelectValue placeholder="Select style" />
                       </SelectTrigger>
                       <SelectContent>
@@ -351,7 +351,7 @@ export default function TextStudioPage() {
                   <div>
                     <Label className="font-bold mb-2 block">Text Case</Label>
                     <Select defaultValue="sentence">
-                      <SelectTrigger className="border-2 border-black rounded-xl">
+                      <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                         <SelectValue placeholder="Select case" />
                       </SelectTrigger>
                       <SelectContent>
@@ -396,7 +396,7 @@ export default function TextStudioPage() {
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full border-2 border-black rounded-xl font-bold mt-4">
+                  <Button variant="outline" className="w-full border-2 border-[#97f0e5] rounded-xl font-bold mt-4">
                     <Sparkles className="h-4 w-4 mr-2" /> Detailed Analysis
                   </Button>
                 </TabsContent>
@@ -404,7 +404,7 @@ export default function TextStudioPage() {
             </div>
           </Card>
 
-          <Card className="border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="bg-gradient-to-br from-yellow-500 to-amber-500 p-4 text-white">
               <h3 className="text-xl font-bold">Export Options</h3>
             </div>
@@ -412,7 +412,7 @@ export default function TextStudioPage() {
               <div>
                 <Label className="font-bold mb-2 block">File Format</Label>
                 <Select defaultValue="txt">
-                  <SelectTrigger className="border-2 border-black rounded-xl">
+                  <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                     <SelectValue placeholder="Select format" />
                   </SelectTrigger>
                   <SelectContent>
@@ -425,15 +425,15 @@ export default function TextStudioPage() {
               </div>
 
               <div className="pt-2 space-y-3">
-                <Button className="w-full bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold">
+                <Button className="w-full bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold">
                   <Save className="h-4 w-4 mr-2" /> Save Project
                 </Button>
-                <Button variant="outline" className="w-full border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="w-full border-2 border-[#97f0e5] rounded-xl font-bold">
                   <Download className="h-4 w-4 mr-2" /> Export Text
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border-2 border-black rounded-xl font-bold"
+                  className="w-full border-2 border-[#97f0e5] rounded-xl font-bold"
                   onClick={handleCopyText}
                 >
                   <Copy className="h-4 w-4 mr-2" /> Copy to Clipboard

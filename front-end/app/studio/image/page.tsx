@@ -158,18 +158,18 @@ export default function ImageStudioPage() {
       <div className="grid lg:grid-cols-[1fr_350px] gap-6">
         <div className="space-y-6">
           {/* Image upload/generation section */}
-          <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <Tabs defaultValue="upload">
-              <TabsList className="bg-white/50 border-2 border-black rounded-xl p-1 mb-4 w-full">
+              <TabsList className="bg-white/50 border-2 border-[#97f0e5] rounded-xl p-1 mb-4 w-full">
                 <TabsTrigger
                   value="upload"
-                  className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                  className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                 >
                   Upload
                 </TabsTrigger>
                 <TabsTrigger
                   value="generate"
-                  className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                  className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                 >
                   Generate
                 </TabsTrigger>
@@ -178,16 +178,16 @@ export default function ImageStudioPage() {
               <TabsContent value="upload">
                 <h3 className="text-xl font-bold mb-4">Image Source</h3>
                 {imagePreview ? (
-                  <div className="border-4 border-black rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center mb-4">
+                  <div className="border-4 border-[#97f0e5] rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center mb-4">
                     <canvas ref={canvasRef} className="max-w-full max-h-[300px] sm:max-h-[400px] object-contain" />
                   </div>
                 ) : (
-                  <div className="border-4 border-dashed border-black rounded-xl p-4 sm:p-8 text-center mb-4 aspect-video flex flex-col items-center justify-center">
+                  <div className="border-4 border-dashed border-[#97f0e5] rounded-xl p-4 sm:p-8 text-center mb-4 aspect-video flex flex-col items-center justify-center">
                     <ImageIcon className="h-12 w-12 sm:h-16 sm:w-16 mb-4 opacity-50" />
                     <p className="mb-4">Drop your image here or</p>
                     <Button
                       variant="outline"
-                      className="border-2 border-black rounded-xl font-bold"
+                      className="border-2 border-[#97f0e5] rounded-xl font-bold"
                       onClick={() => document.getElementById("image-upload")?.click()}
                     >
                       <Upload className="h-4 w-4 mr-2" /> Select Image
@@ -203,16 +203,16 @@ export default function ImageStudioPage() {
                 )}
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                  <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                     <ImageIcon className="h-4 w-4 mr-2" /> Stock Images
                   </Button>
-                  <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                  <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                     <Crop className="h-4 w-4 mr-2" /> Crop
                   </Button>
-                  <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                  <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                     <RotateCcw className="h-4 w-4 mr-2" /> Rotate
                   </Button>
-                  <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                  <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                     <Sparkles className="h-4 w-4 mr-2" /> Enhance
                   </Button>
                 </div>
@@ -225,7 +225,7 @@ export default function ImageStudioPage() {
                     <Label className="font-bold mb-2 block">Describe the image you want to create</Label>
                     <Textarea
                       placeholder="E.g., A serene mountain landscape at sunset with a lake reflecting the colorful sky..."
-                      className="min-h-[100px] border-2 border-black rounded-xl"
+                      className="min-h-[100px] border-2 border-[#97f0e5] rounded-xl"
                       value={aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
                     />
@@ -235,7 +235,7 @@ export default function ImageStudioPage() {
                     <div>
                       <Label className="font-bold mb-2 block">Style</Label>
                       <Select defaultValue="realistic">
-                        <SelectTrigger className="border-2 border-black rounded-xl">
+                        <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                           <SelectValue placeholder="Select style" />
                         </SelectTrigger>
                         <SelectContent>
@@ -251,7 +251,7 @@ export default function ImageStudioPage() {
                     <div>
                       <Label className="font-bold mb-2 block">Aspect Ratio</Label>
                       <Select defaultValue="square">
-                        <SelectTrigger className="border-2 border-black rounded-xl">
+                        <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                           <SelectValue placeholder="Select ratio" />
                         </SelectTrigger>
                         <SelectContent>
@@ -266,7 +266,7 @@ export default function ImageStudioPage() {
 
                   <div className="flex justify-end">
                     <Button
-                      className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold"
+                      className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold"
                       onClick={handleAIGenerate}
                       disabled={isProcessing || !aiPrompt.trim()}
                     >
@@ -288,31 +288,31 @@ export default function ImageStudioPage() {
 
           {/* Quick tools */}
           {imagePreview && (
-            <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
               <h3 className="text-xl font-bold mb-4">Quick Tools</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                   <Crop className="h-4 w-4 mr-2" /> Crop
                 </Button>
-                <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                   <RotateCcw className="h-4 w-4 mr-2" /> Rotate
                 </Button>
-                <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                   <Paintbrush className="h-4 w-4 mr-2" /> Draw
                 </Button>
-                <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                   <Eraser className="h-4 w-4 mr-2" /> Erase
                 </Button>
-                <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                   <Layers className="h-4 w-4 mr-2" /> Layers
                 </Button>
-                <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                   <Move className="h-4 w-4 mr-2" /> Move
                 </Button>
-                <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                   <ImageIcon className="h-4 w-4 mr-2" /> Filters
                 </Button>
-                <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                   <Sparkles className="h-4 w-4 mr-2" /> Enhance
                 </Button>
               </div>
@@ -320,7 +320,7 @@ export default function ImageStudioPage() {
           )}
 
           {/* AI Image Processing */}
-          <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="h-5 w-5" />
               <h3 className="text-xl font-bold">AI Image Assistant</h3>
@@ -331,7 +331,7 @@ export default function ImageStudioPage() {
                 <Label className="font-bold mb-2 block">What would you like to do with your image?</Label>
                 <Textarea
                   placeholder="E.g., Remove the background, enhance colors, make it look more professional..."
-                  className="min-h-[80px] border-2 border-black rounded-xl"
+                  className="min-h-[80px] border-2 border-[#97f0e5] rounded-xl"
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                 />
@@ -339,7 +339,7 @@ export default function ImageStudioPage() {
 
               <div className="flex justify-end">
                 <Button
-                  className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold"
+                  className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold"
                   onClick={handleAIProcess}
                   disabled={isProcessing || !aiPrompt.trim()}
                 >
@@ -356,7 +356,7 @@ export default function ImageStudioPage() {
               </div>
 
               {aiResponse && (
-                <div className="mt-4 p-4 bg-white/50 border-2 border-black rounded-xl">
+                <div className="mt-4 p-4 bg-white/50 border-2 border-[#97f0e5] rounded-xl">
                   <div className="flex items-start gap-3">
                     <MessageSquare className="h-5 w-5 mt-0.5" />
                     <div>
@@ -372,28 +372,28 @@ export default function ImageStudioPage() {
 
         {/* Controls panel */}
         <div className="space-y-6">
-          <Card className="border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="bg-gradient-to-br from-green-500 to-teal-500 p-4 text-white">
               <h3 className="text-xl font-bold">Image Controls</h3>
             </div>
             <div className="p-4 bg-white">
               <Tabs defaultValue="adjust">
-                <TabsList className="bg-white/50 border-2 border-black rounded-xl p-1 mb-4 w-full">
+                <TabsList className="bg-white/50 border-2 border-[#97f0e5] rounded-xl p-1 mb-4 w-full">
                   <TabsTrigger
                     value="adjust"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Adjust
                   </TabsTrigger>
                   <TabsTrigger
                     value="filters"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Filters
                   </TabsTrigger>
                   <TabsTrigger
                     value="resize"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Resize
                   </TabsTrigger>
@@ -425,7 +425,7 @@ export default function ImageStudioPage() {
                   <div>
                     <Label className="font-bold mb-2 block">Filter</Label>
                     <Select value={activeFilter} onValueChange={setActiveFilter}>
-                      <SelectTrigger className="border-2 border-black rounded-xl">
+                      <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                         <SelectValue placeholder="Select a filter" />
                       </SelectTrigger>
                       <SelectContent>
@@ -476,7 +476,7 @@ export default function ImageStudioPage() {
             </div>
           </Card>
 
-          <Card className="border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="bg-gradient-to-br from-green-500 to-teal-500 p-4 text-white">
               <h3 className="text-xl font-bold">Export Options</h3>
             </div>
@@ -484,7 +484,7 @@ export default function ImageStudioPage() {
               <div>
                 <Label className="font-bold mb-2 block">File Format</Label>
                 <Select defaultValue="png">
-                  <SelectTrigger className="border-2 border-black rounded-xl">
+                  <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                     <SelectValue placeholder="Select format" />
                   </SelectTrigger>
                   <SelectContent>
@@ -499,7 +499,7 @@ export default function ImageStudioPage() {
               <div>
                 <Label className="font-bold mb-2 block">Quality</Label>
                 <Select defaultValue="high">
-                  <SelectTrigger className="border-2 border-black rounded-xl">
+                  <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                     <SelectValue placeholder="Select quality" />
                   </SelectTrigger>
                   <SelectContent>
@@ -512,10 +512,10 @@ export default function ImageStudioPage() {
               </div>
 
               <div className="pt-2 space-y-3">
-                <Button className="w-full bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold">
+                <Button className="w-full bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold">
                   <Save className="h-4 w-4 mr-2" /> Save Project
                 </Button>
-                <Button variant="outline" className="w-full border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="w-full border-2 border-[#97f0e5] rounded-xl font-bold">
                   <Download className="h-4 w-4 mr-2" /> Export Image
                 </Button>
               </div>

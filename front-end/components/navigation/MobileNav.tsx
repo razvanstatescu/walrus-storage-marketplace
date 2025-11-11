@@ -41,7 +41,7 @@ export function MobileNav({
 }: MobileNavProps) {
   return (
     <div className="h-full bg-white/40 backdrop-blur-md flex flex-col">
-      <div className="p-6 border-b-4 border-black">
+      <div className="p-6 border-b-4 border-[#97f0e5]">
         <h2 className="text-2xl font-black">{title}</h2>
       </div>
 
@@ -53,8 +53,8 @@ export function MobileNav({
               href={item.href}
               className={
                 item.active
-                  ? "flex items-center gap-2 text-lg font-bold p-3 bg-black text-white rounded-xl"
-                  : "flex items-center gap-2 text-lg font-bold p-3 hover:bg-black/10 rounded-xl"
+                  ? "flex items-center gap-2 text-lg font-bold p-3 bg-[#97f0e5] text-black rounded-xl"
+                  : "flex items-center gap-2 text-lg font-bold p-3 hover:bg-[#97f0e5]/10 rounded-xl"
               }
             >
               {item.label}
@@ -72,7 +72,7 @@ export function MobileNav({
                   <Button
                     key={platform.label}
                     variant="outline"
-                    className="w-full justify-start gap-2 rounded-xl border-2 border-black font-bold"
+                    className="w-full justify-start gap-2 rounded-xl border-2 border-[#97f0e5] font-bold"
                   >
                     <Icon className="h-5 w-5" /> {platform.label}
                   </Button>
@@ -84,14 +84,14 @@ export function MobileNav({
       </div>
 
       {showActions && (
-        <div className="p-4 border-t-4 border-black">
+        <div className="p-4 border-t-4 border-[#97f0e5]">
           <div className="grid grid-cols-2 gap-2">
-            <Button className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold">
+            <Button className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold">
               Connect
             </Button>
             <Button
               variant="outline"
-              className="rounded-xl border-2 border-black font-bold"
+              className="rounded-xl border-2 border-[#97f0e5] font-bold"
             >
               Settings
             </Button>

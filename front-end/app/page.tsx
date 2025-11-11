@@ -1,9 +1,4 @@
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Instagram, Linkedin, Plus, Twitter } from "lucide-react";
-import SocialMediaCard from "@/components/social-media-card";
-import ContentCreator from "@/components/content-creator";
-import StudioSelector from "@/components/studio-selector";
+import StorageReservation from "@/components/storage-reservation";
 import { AppShell } from "@/components/layouts/AppShell";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 
@@ -11,6 +6,11 @@ export default function Dashboard() {
   return (
     <AppShell>
       <DashboardLayout>
+        <div className="mb-8">
+          <StorageReservation />
+        </div>
+
+        {/* Original content kept for reference - can be removed later
         <div className="mb-8">
           <h2 className="text-xl sm:text-2xl font-black mb-4">
             CONNECTED ACCOUNTS
@@ -34,7 +34,7 @@ export default function Dashboard() {
               icon={<Linkedin className="h-6 w-6" />}
               color="bg-blue-600"
             />
-            <Button className="h-full min-h-[120px] border-4 border-dashed border-black rounded-xl flex flex-col items-center justify-center gap-2 bg-white/50 hover:bg-white/70">
+            <Button className="h-full min-h-[120px] border-4 border-dashed border-[#97f0e5] rounded-xl flex flex-col items-center justify-center gap-2 bg-white/50 hover:bg-white/70">
               <Plus className="h-8 w-8" />
               <span className="font-bold">Add Platform</span>
             </Button>
@@ -44,22 +44,22 @@ export default function Dashboard() {
         <div className="mb-10">
           <h2 className="text-xl sm:text-2xl font-black mb-4">CREATE CONTENT</h2>
           <Tabs defaultValue="post" className="w-full">
-            <TabsList className="w-full bg-white/50 border-2 border-black rounded-xl p-1 mb-4">
+            <TabsList className="w-full bg-white/50 border-2 border-[#97f0e5] rounded-xl p-1 mb-4">
               <TabsTrigger
                 value="post"
-                className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
               >
                 Post
               </TabsTrigger>
               <TabsTrigger
                 value="story"
-                className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
               >
                 Story
               </TabsTrigger>
               <TabsTrigger
                 value="video"
-                className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
               >
                 Video
               </TabsTrigger>
@@ -80,6 +80,7 @@ export default function Dashboard() {
           <h2 className="text-xl sm:text-2xl font-black mb-4">CONTENT STUDIO</h2>
           <StudioSelector />
         </div>
+        */}
       </DashboardLayout>
     </AppShell>
   );

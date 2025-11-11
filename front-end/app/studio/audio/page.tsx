@@ -91,9 +91,9 @@ export default function AudioStudioPage() {
       <div className="grid lg:grid-cols-[1fr_350px] gap-6">
         <div className="space-y-6">
           {/* Audio upload section */}
-          <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <h3 className="text-xl font-bold mb-4">Audio Source</h3>
-            <div className="border-4 border-dashed border-black rounded-xl p-4 sm:p-8 text-center mb-4">
+            <div className="border-4 border-dashed border-[#97f0e5] rounded-xl p-4 sm:p-8 text-center mb-4">
               {audioFile ? (
                 <div>
                   <Music className="mx-auto h-8 w-8 sm:h-10 sm:w-10 mb-2" />
@@ -106,7 +106,7 @@ export default function AudioStudioPage() {
                   <p className="mb-2">Drop your audio file here or</p>
                   <Button
                     variant="outline"
-                    className="border-2 border-black rounded-xl font-bold"
+                    className="border-2 border-[#97f0e5] rounded-xl font-bold"
                     onClick={() => document.getElementById("audio-upload")?.click()}
                   >
                     <Upload className="h-4 w-4 mr-2" /> Select File
@@ -123,41 +123,41 @@ export default function AudioStudioPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+              <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                 <Mic className="h-4 w-4 mr-2" /> Record
               </Button>
-              <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+              <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                 <Music className="h-4 w-4 mr-2" /> Stock Audio
               </Button>
-              <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+              <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                 <Wand2 className="h-4 w-4 mr-2" /> Generate
               </Button>
-              <Button variant="outline" className="border-2 border-black rounded-xl font-bold">
+              <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl font-bold">
                 <Sparkles className="h-4 w-4 mr-2" /> Enhance
               </Button>
             </div>
           </Card>
 
           {/* Waveform visualization */}
-          <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <h3 className="text-xl font-bold mb-4">Audio Editor</h3>
-            <div className="bg-white/50 border-4 border-black rounded-xl p-4">
-              <div className="bg-white border-2 border-black rounded-lg p-2">
+            <div className="bg-white/50 border-4 border-[#97f0e5] rounded-xl p-4">
+              <div className="bg-white border-2 border-[#97f0e5] rounded-lg p-2">
                 <canvas ref={canvasRef} width={800} height={150} className="w-full h-[100px] sm:h-[150px]" />
               </div>
 
               {/* Playback controls */}
               <div className="flex items-center justify-center gap-2 mt-4">
-                <Button variant="outline" className="border-2 border-black rounded-xl h-10 w-10 p-0">
+                <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl h-10 w-10 p-0">
                   <SkipBack className="h-4 w-4" />
                 </Button>
                 <Button
-                  className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black h-12 w-12 p-0"
+                  className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] h-12 w-12 p-0"
                   onClick={() => setIsPlaying(!isPlaying)}
                 >
                   {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                 </Button>
-                <Button variant="outline" className="border-2 border-black rounded-xl h-10 w-10 p-0">
+                <Button variant="outline" className="border-2 border-[#97f0e5] rounded-xl h-10 w-10 p-0">
                   <SkipForward className="h-4 w-4" />
                 </Button>
               </div>
@@ -190,7 +190,7 @@ export default function AudioStudioPage() {
           </Card>
 
           {/* AI Audio Processing */}
-          <Card className="border-4 border-black rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl p-4 sm:p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="h-5 w-5" />
               <h3 className="text-xl font-bold">AI Audio Assistant</h3>
@@ -201,7 +201,7 @@ export default function AudioStudioPage() {
                 <Label className="font-bold mb-2 block">What would you like to do with your audio?</Label>
                 <Textarea
                   placeholder="E.g., Remove background noise, enhance vocals, add reverb, make it sound more professional..."
-                  className="min-h-[80px] border-2 border-black rounded-xl"
+                  className="min-h-[80px] border-2 border-[#97f0e5] rounded-xl"
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                 />
@@ -209,7 +209,7 @@ export default function AudioStudioPage() {
 
               <div className="flex justify-end">
                 <Button
-                  className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold"
+                  className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold"
                   onClick={handleAIProcess}
                   disabled={isProcessing || !aiPrompt.trim()}
                 >
@@ -226,7 +226,7 @@ export default function AudioStudioPage() {
               </div>
 
               {aiResponse && (
-                <div className="mt-4 p-4 bg-white/50 border-2 border-black rounded-xl">
+                <div className="mt-4 p-4 bg-white/50 border-2 border-[#97f0e5] rounded-xl">
                   <div className="flex items-start gap-3">
                     <MessageSquare className="h-5 w-5 mt-0.5" />
                     <div>
@@ -242,22 +242,22 @@ export default function AudioStudioPage() {
 
         {/* Controls panel */}
         <div className="space-y-6">
-          <Card className="border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="bg-gradient-to-br from-pink-500 to-orange-500 p-4 text-white">
               <h3 className="text-xl font-bold">Audio Controls</h3>
             </div>
             <div className="p-4 bg-white">
               <Tabs defaultValue="mixer">
-                <TabsList className="bg-white/50 border-2 border-black rounded-xl p-1 mb-4 w-full">
+                <TabsList className="bg-white/50 border-2 border-[#97f0e5] rounded-xl p-1 mb-4 w-full">
                   <TabsTrigger
                     value="mixer"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Mixer
                   </TabsTrigger>
                   <TabsTrigger
                     value="effects"
-                    className="rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-bold"
+                    className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold"
                   >
                     Effects
                   </TabsTrigger>
@@ -310,7 +310,7 @@ export default function AudioStudioPage() {
             </div>
           </Card>
 
-          <Card className="border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <Card className="border-4 border-[#97f0e5] rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]">
             <div className="bg-gradient-to-br from-pink-500 to-orange-500 p-4 text-white">
               <h3 className="text-xl font-bold">Export Options</h3>
             </div>
@@ -318,7 +318,7 @@ export default function AudioStudioPage() {
               <div>
                 <Label className="font-bold mb-2 block">File Format</Label>
                 <Select defaultValue="mp3">
-                  <SelectTrigger className="border-2 border-black rounded-xl">
+                  <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                     <SelectValue placeholder="Select format" />
                   </SelectTrigger>
                   <SelectContent>
@@ -333,7 +333,7 @@ export default function AudioStudioPage() {
               <div>
                 <Label className="font-bold mb-2 block">Quality</Label>
                 <Select defaultValue="high">
-                  <SelectTrigger className="border-2 border-black rounded-xl">
+                  <SelectTrigger className="border-2 border-[#97f0e5] rounded-xl">
                     <SelectValue placeholder="Select quality" />
                   </SelectTrigger>
                   <SelectContent>
@@ -346,10 +346,10 @@ export default function AudioStudioPage() {
               </div>
 
               <div className="pt-2 space-y-3">
-                <Button className="w-full bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold">
+                <Button className="w-full bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold">
                   <Save className="h-4 w-4 mr-2" /> Save Project
                 </Button>
-                <Button variant="outline" className="w-full border-2 border-black rounded-xl font-bold">
+                <Button variant="outline" className="w-full border-2 border-[#97f0e5] rounded-xl font-bold">
                   <Download className="h-4 w-4 mr-2" /> Export Audio
                 </Button>
               </div>

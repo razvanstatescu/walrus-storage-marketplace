@@ -24,7 +24,7 @@ export function PageContainer({
   return (
     <div
       className={cn(
-        "backdrop-blur-xl bg-white/30 border-4 border-black rounded-3xl p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]",
+        "backdrop-blur-xl bg-white/30 border-4 border-[#97f0e5] rounded-3xl p-6 shadow-[8px_8px_0px_0px_rgba(151,240,229,1)]",
         className
       )}
     >

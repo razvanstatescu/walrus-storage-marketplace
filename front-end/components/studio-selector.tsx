@@ -44,7 +44,7 @@ export default function StudioSelector() {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {studioOptions.map((studio) => (
         <Link href={studio.href} key={studio.type} className="block">
-          <Card className="border-4 border-black rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] cursor-pointer hover:translate-y-[-4px] transition-transform h-full">
+          <Card className="border-4 border-[#97f0e5] rounded-xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(151,240,229,1)] cursor-pointer hover:translate-y-[-4px] transition-transform h-full">
             <div className={`p-4 sm:p-6 text-white ${studio.color}`}>
               {studio.icon}
               <h3 className="text-lg sm:text-xl font-bold mt-4">{studio.name}</h3>

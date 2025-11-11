@@ -23,7 +23,7 @@ export function Navbar({
   children,
 }: NavbarProps) {
   return (
-    <header className="border-b-4 border-black p-4 sm:p-6 bg-white/40 backdrop-blur-md">
+    <header className="border-b-4 border-[#97f0e5] p-4 sm:p-6 bg-white/40 backdrop-blur-md">
       <div className="flex justify-between items-center gap-4">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight">
           {title}
@@ -37,14 +37,14 @@ export function Navbar({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="rounded-xl border-2 border-black"
+                  className="rounded-xl border-2 border-[#97f0e5]"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className="border-r-4 border-black p-0"
+                className="border-r-4 border-[#97f0e5] p-0"
               >
                 <MobileNav />
               </SheetContent>
@@ -57,12 +57,12 @@ export function Navbar({
           children
         ) : showActions ? (
           <div className="hidden sm:flex items-center gap-3">
-            <Button className="bg-black hover:bg-black/80 text-white rounded-xl border-2 border-black font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <Button className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]">
               Connect Account
             </Button>
             <Button
               variant="outline"
-              className="rounded-xl border-2 border-black font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              className="rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]"
             >
               Settings
             </Button>
