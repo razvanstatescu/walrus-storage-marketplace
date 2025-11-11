@@ -74,11 +74,14 @@ export function Navbar({
         ) : showActions ? (
           <div className="hidden sm:flex items-center gap-3">
             {!isConnected ? (
-              <ConnectButton className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]" />
+              <ConnectButton
+                connectText="Connect Account"
+                className="!bg-[#97f0e5] hover:!bg-[#97f0e5]/80 !text-black !rounded-xl !border-2 !border-[#97f0e5] !font-bold !shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] !h-10 !text-sm"
+              />
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]">
+                  <Button className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] h-10 text-sm">
                     {formatAddress(address || "")}
                   </Button>
                 </DropdownMenuTrigger>
