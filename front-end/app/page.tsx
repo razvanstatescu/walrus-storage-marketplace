@@ -28,7 +28,7 @@ export default function Dashboard() {
         }
       />
 
-      <div className="grid md:grid-cols-[280px_1fr] h-[calc(100vh-6rem)]">
+      <div className="grid md:grid-cols-[260px_1fr] h-[calc(100vh-6rem)]">
         <Sidebar activeLink="Dashboard" />
 
         {/* Main content */}
