@@ -2,8 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Menu, LogOut } from "lucide-react";
 import { MobileNav } from "@/components/navigation/MobileNav";
+import { useWalletConnection } from "@/hooks/useWalletConnection";
+import { ConnectButton } from "@mysten/dapp-kit";
 
 interface NavbarProps {
   title?: string;
@@ -22,6 +30,14 @@ export function Navbar({
   showActions = true,
   children,
 }: NavbarProps) {
+  const { isConnected, address, disconnect } = useWalletConnection();
+
+  // Helper function to format address
+  const formatAddress = (addr: string) => {
+    if (!addr) return "";
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
   return (
     <header className="border-b-4 border-[#97f0e5] p-4 sm:p-6 bg-white/40 backdrop-blur-md">
       <div className="flex justify-between items-center gap-4">
@@ -57,9 +73,31 @@ export function Navbar({
           children
         ) : showActions ? (
           <div className="hidden sm:flex items-center gap-3">
-            <Button className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]">
-              Connect Account
-            </Button>
+            {!isConnected ? (
+              <ConnectButton className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]" />
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]">
+                    {formatAddress(address || "")}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={8}
+                  className="w-48 border-4 border-[#97f0e5] rounded-xl bg-white shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]"
+                >
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => disconnect()}
+                    className="cursor-pointer rounded-lg font-bold"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button
               variant="outline"
               className="rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]"

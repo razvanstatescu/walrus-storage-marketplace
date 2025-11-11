@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { WalletProviders } from '@/components/providers/WalletProviders'
+import '@mysten/dapp-kit/dist/index.css'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -23,8 +25,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        {children}
-        <Analytics />
+        <WalletProviders>
+          {children}
+          <Analytics />
+        </WalletProviders>
       </body>
     </html>
   )
