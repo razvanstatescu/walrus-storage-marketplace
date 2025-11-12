@@ -41,7 +41,7 @@ export default function StorageReservation() {
   const savingsPercentage = ((SYSTEM_STORAGE_PREMIUM - 1) * 100).toFixed(0);
 
   return (
-    <div className="backdrop-blur-md bg-white/50 border-2 border-[#97f0e5] rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]">
+    <div className="backdrop-blur-md bg-[#97f0e5]/10 border-2 border-[#97f0e5] rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]">
       <h3 className="text-xl font-black mb-6">RESERVE STORAGE</h3>
 
       {/* Storage Size Input */}

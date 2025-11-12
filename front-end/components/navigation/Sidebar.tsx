@@ -36,7 +36,7 @@ export function Sidebar({
   showPlatforms = true,
 }: SidebarProps) {
   return (
-    <div className="hidden md:block border-r-2 border-[#97f0e5] bg-white/40 p-4">
+    <div className="hidden md:block border-r-2 border-[#97f0e5] bg-white/40 p-4 sm:p-6">
       <nav className="space-y-3">
         {navItems.map((item) => (
           <Link
