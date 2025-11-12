@@ -1,11 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
 
 interface NavItem {
   href: string;
   label: string;
-  active?: boolean;
 }
 
 interface SidebarProps {
@@ -14,7 +16,7 @@ interface SidebarProps {
 }
 
 const defaultNavItems: NavItem[] = [
-  { href: "/", label: "Reserve", active: true },
+  { href: "/", label: "Reserve" },
   { href: "/wallet", label: "My Wallet" },
 ];
 
@@ -33,22 +35,27 @@ export function Sidebar({
   navItems = defaultNavItems,
   showPlatforms = true,
 }: SidebarProps) {
+  const pathname = usePathname();
+
   return (
     <div className="hidden md:block border-r-2 border-[#97f0e5] bg-white/40 p-4 sm:p-6">
       <nav className="space-y-3">
-        {navItems.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className={
-              item.active
-                ? "flex items-center gap-2 font-bold rounded-xl border-2 border-[#97f0e5] shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] bg-[#97f0e5]/50 text-black px-4 py-2 cursor-pointer transition-all"
-                : "flex items-center gap-2 font-bold rounded-xl border-2 border-[#97f0e5] shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] px-4 py-2 cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[1px_1px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-            }
-          >
-            {item.label}
-          </Link>
-        ))}
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={
+                isActive
+                  ? "flex items-center gap-2 font-bold rounded-xl border-2 border-[#97f0e5] shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] bg-[#97f0e5]/50 text-black px-4 py-2 cursor-pointer transition-all"
+                  : "flex items-center gap-2 font-bold rounded-xl border-2 border-[#97f0e5] shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] px-4 py-2 cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[1px_1px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+              }
+            >
+              {item.label}
+            </Link>
+          );
+        })}
       </nav>
 
       {showPlatforms && (
