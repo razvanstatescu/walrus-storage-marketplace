@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,38 +15,84 @@ import { Slider } from "@/components/ui/slider";
 import { Lock } from "lucide-react";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { ConnectButton } from "@mysten/dapp-kit";
+import { useWalrusEpoch } from "@/hooks/useWalrusEpoch";
+import { useStorageOptimizer } from "@/hooks/useStorageOptimizer";
+import { formatWalPrice } from "@/lib/utils/storagePrice";
 
-type StorageUnit = "KB" | "MB" | "GB" | "TB";
+type StorageUnit = "KiB" | "MiB" | "GiB" | "TiB";
 
 const UNIT_MULTIPLIERS = {
-  KB: 1,
-  MB: 1024,
-  GB: 1024 * 1024,
-  TB: 1024 * 1024 * 1024,
+  KiB: 1024,
+  MiB: 1024 * 1024,
+  GiB: 1024 * 1024 * 1024,
+  TiB: 1024 * 1024 * 1024 * 1024,
 };
 
-// Mock pricing constants (adjust as needed)
-const WAL_PER_GB_PER_EPOCH = 0.001; // 0.001 WAL per GB per epoch
-const WAL_TO_USD = 0.5; // 1 WAL = $0.50
-const SYSTEM_STORAGE_PREMIUM = 1.25; // System storage costs 25% more
-
 export default function StorageReservation() {
-  const [size, setSize] = useState<number>(100);
-  const [unit, setUnit] = useState<StorageUnit>("GB");
-  const [epochs, setEpochs] = useState<number[]>([30]); // Slider returns array
-  const { isConnected, connect } = useWalletConnection();
+  const [size, setSize] = useState<number>(1);
+  const [unit, setUnit] = useState<StorageUnit>("MiB");
+  const [epochs, setEpochs] = useState<number[]>([5]); // Slider returns array
 
-  // Calculate total size in GB
-  const sizeInGB = (size * UNIT_MULTIPLIERS[unit]) / UNIT_MULTIPLIERS.GB;
+  const { isConnected } = useWalletConnection();
+  const { epoch: currentEpoch, isLoading: isLoadingEpoch } = useWalrusEpoch();
+  const { optimize, result: optimizationResult, isLoading: isOptimizing } = useStorageOptimizer();
 
-  // Calculate costs
-  const walCost = sizeInGB * epochs[0] * WAL_PER_GB_PER_EPOCH;
-  const usdCost = walCost * WAL_TO_USD;
-  const savingsPercentage = ((SYSTEM_STORAGE_PREMIUM - 1) * 100).toFixed(0);
+  // Calculate total size in bytes
+  const sizeInBytes = useMemo(() => {
+    return BigInt(Math.floor(size * UNIT_MULTIPLIERS[unit]));
+  }, [size, unit]);
+
+  // Optimize storage allocation when inputs change
+  useEffect(() => {
+    if (currentEpoch === null || size <= 0) return;
+
+    const timeoutId = setTimeout(() => {
+      optimize({
+        size: sizeInBytes.toString(),
+        startEpoch: currentEpoch,
+        endEpoch: currentEpoch + epochs[0],
+      }).catch((error) => {
+        console.error("Optimization failed:", error);
+      });
+    }, 500); // Debounce for 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [sizeInBytes, currentEpoch, epochs, optimize]);
+
+  // Calculate costs from optimization result
+  const totalCostWal = useMemo(() => {
+    if (!optimizationResult?.totalCost) return null;
+    return formatWalPrice(optimizationResult.totalCost, 4);
+  }, [optimizationResult]);
+
+  const systemOnlyPriceWal = useMemo(() => {
+    if (!optimizationResult?.systemOnlyPrice) return null;
+    return formatWalPrice(optimizationResult.systemOnlyPrice, 4);
+  }, [optimizationResult]);
+
+  const savingsWal = useMemo(() => {
+    if (!optimizationResult?.systemOnlyPrice || !optimizationResult?.totalCost) return null;
+    const savings = BigInt(optimizationResult.systemOnlyPrice) - BigInt(optimizationResult.totalCost);
+    return formatWalPrice(savings.toString(), 4);
+  }, [optimizationResult]);
+
+  const savingsPercentage = useMemo(() => {
+    if (!optimizationResult?.systemOnlyPrice || !optimizationResult?.totalCost) return null;
+    const systemPrice = Number(optimizationResult.systemOnlyPrice);
+    const totalPrice = Number(optimizationResult.totalCost);
+    if (systemPrice === 0) return "0";
+    const percentage = ((systemPrice - totalPrice) / systemPrice) * 100;
+    return percentage.toFixed(1);
+  }, [optimizationResult]);
+
 
   const handleReserveClick = () => {
     // Handle reservation logic when connected
-    console.log("Reserving storage...");
+    console.log("Reserving storage...", {
+      size: sizeInBytes.toString(),
+      epochs: epochs[0],
+      optimizationResult,
+    });
   };
 
   return (
@@ -70,10 +116,10 @@ export default function StorageReservation() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="KB">KB</SelectItem>
-              <SelectItem value="MB">MB</SelectItem>
-              <SelectItem value="GB">GB</SelectItem>
-              <SelectItem value="TB">TB</SelectItem>
+              <SelectItem value="KiB">KiB</SelectItem>
+              <SelectItem value="MiB">MiB</SelectItem>
+              <SelectItem value="GiB">GiB</SelectItem>
+              <SelectItem value="TiB">TiB</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -107,22 +153,43 @@ export default function StorageReservation() {
           <div className="text-xs font-bold text-gray-600 mb-1">
             TOTAL COST
           </div>
-          <div className="text-2xl font-black text-[#97f0e5]">
-            {walCost.toFixed(4)} WAL
-          </div>
-          <div className="text-sm text-gray-600 mt-1">
-            ≈ ${usdCost.toFixed(2)} USD
-          </div>
+          {isLoadingEpoch || isOptimizing ? (
+            <div className="text-2xl font-black text-gray-400">
+              Loading...
+            </div>
+          ) : totalCostWal ? (
+            <div className="text-2xl font-black text-[#97f0e5]">
+              {totalCostWal} WAL
+            </div>
+          ) : (
+            <div className="text-2xl font-black text-gray-400">
+              --
+            </div>
+          )}
         </div>
 
         <div className="bg-white/70 border-2 border-[#97f0e5] rounded-xl p-4">
           <div className="text-xs font-bold text-gray-600 mb-1">
             YOU SAVE
           </div>
-          <div className="text-2xl font-black text-green-600">
-            {savingsPercentage}%
-          </div>
-          <div className="text-sm text-gray-600 mt-1">vs System Storage</div>
+          {isLoadingEpoch || isOptimizing ? (
+            <div className="text-2xl font-black text-gray-400">
+              Loading...
+            </div>
+          ) : savingsPercentage && savingsWal ? (
+            <>
+              <div className="text-2xl font-black text-green-600">
+                {savingsPercentage}%
+              </div>
+              <div className="text-sm text-gray-600 mt-1">
+                {savingsWal} WAL vs System
+              </div>
+            </>
+          ) : (
+            <div className="text-2xl font-black text-gray-400">
+              --
+            </div>
+          )}
         </div>
       </div>
 
@@ -150,7 +217,7 @@ export default function StorageReservation() {
       {/* Info Text */}
       <p className="text-xs text-gray-600 text-center mt-3">
         Storage will be reserved for {epochs[0]} epoch{epochs[0] !== 1 ? "s" : ""}
-        {" "}({sizeInGB.toFixed(2)} GB total)
+        {" "}({size} {unit} total)
       </p>
     </div>
   );
