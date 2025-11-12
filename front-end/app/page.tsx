@@ -1,4 +1,5 @@
 import StorageReservation from "@/components/storage-reservation";
+import { MarketplaceAnalytics } from "@/components/MarketplaceAnalytics";
 import { AppShell } from "@/components/layouts/AppShell";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 
@@ -16,6 +17,8 @@ export default function Dashboard() {
           </div>
 
           <StorageReservation />
+
+          <MarketplaceAnalytics />
         </div>
 
         {/* Original content kept for reference - can be removed later
