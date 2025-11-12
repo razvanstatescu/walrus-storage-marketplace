@@ -15,7 +15,7 @@ interface DashboardLayoutProps {
  */
 export function DashboardLayout({
   children,
-  title = "POSTCRAFT",
+  title = "Storewave",
   showSidebar = true,
   showMobileMenu = true,
   showNavbarActions = true,

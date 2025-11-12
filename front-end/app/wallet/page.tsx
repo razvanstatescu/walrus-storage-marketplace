@@ -210,7 +210,7 @@ export default function WalletPage() {
 
   return (
     <AppShell>
-      <DashboardLayout title="MY WALLET">
+      <DashboardLayout>
         <div className="space-y-6">
           <h2 className="text-2xl sm:text-3xl font-black">MY WALLET</h2>
 

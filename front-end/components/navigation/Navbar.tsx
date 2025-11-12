@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/Logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
@@ -26,7 +27,7 @@ interface NavbarProps {
  * Displays app title, mobile menu toggle, and action buttons
  */
 export function Navbar({
-  title = "POSTCRAFT",
+  title = "Storewave",
   showMobileMenu = true,
   showActions = true,
   children,
@@ -43,9 +44,19 @@ export function Navbar({
   return (
     <header className="border-b-2 border-[#97f0e5] p-4 sm:p-6 bg-white/40 backdrop-blur-md">
       <div className="flex justify-between items-center gap-4">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight">
-          {title}
-        </h1>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Logo size={32} className="sm:w-10 sm:h-10 md:w-12 md:h-12" />
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight">
+            {title === "Storewave" ? (
+              <>
+                <span className="text-black">Store</span>
+                <span className="text-[#97f0e5]">wave</span>
+              </>
+            ) : (
+              title
+            )}
+          </h1>
+        </div>
 
         {/* Mobile menu */}
         {showMobileMenu && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/layouts/AppShell";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -176,6 +177,11 @@ export default function MyListingsPage() {
                 <p className="mt-2 text-gray-600">
                   You don't have any storage listed on the marketplace yet.
                 </p>
+                <Link href="/wallet">
+                  <Button className="mt-6 rounded-xl border-2 border-[#97f0e5] bg-[#97f0e5]/50 font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all">
+                    List Storage Now
+                  </Button>
+                </Link>
               </div>
             </div>
           ) : (
