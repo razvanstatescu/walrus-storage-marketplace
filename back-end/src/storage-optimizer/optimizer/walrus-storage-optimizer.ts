@@ -66,6 +66,54 @@ function getOverlapPeriod(
   };
 }
 
+/**
+ * Verify if allocations cover the full requested epoch range
+ * Returns any gaps in epoch coverage that need to be filled
+ */
+function verifyEpochCoverage(
+  allocations: StorageAllocation[],
+  request: StorageRequest
+): Array<{ start: number; end: number }> {
+  if (allocations.length === 0) {
+    // No allocations - entire range is a gap
+    return [{ start: request.startEpoch, end: request.endEpoch }];
+  }
+
+  // Sort allocations by start epoch
+  const sorted = [...allocations].sort((a, b) => a.usedStartEpoch - b.usedStartEpoch);
+
+  const gaps: Array<{ start: number; end: number }> = [];
+
+  // Check if there's a gap before the first allocation
+  if (sorted[0].usedStartEpoch > request.startEpoch) {
+    gaps.push({
+      start: request.startEpoch,
+      end: sorted[0].usedStartEpoch
+    });
+  }
+
+  // Check for gaps between allocations
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const currentEnd = sorted[i].usedEndEpoch;
+    const nextStart = sorted[i + 1].usedStartEpoch;
+
+    if (currentEnd < nextStart) {
+      gaps.push({ start: currentEnd, end: nextStart });
+    }
+  }
+
+  // Check if there's a gap after the last allocation
+  const lastAllocation = sorted[sorted.length - 1];
+  if (lastAllocation.usedEndEpoch < request.endEpoch) {
+    gaps.push({
+      start: lastAllocation.usedEndEpoch,
+      end: request.endEpoch
+    });
+  }
+
+  return gaps;
+}
+
 // Main optimization algorithm
 export class WalrusStorageOptimizer {
   private storageObjects: StorageObject[];
@@ -193,8 +241,18 @@ export class WalrusStorageOptimizer {
       console.log(`      Remaining size: ${remainingSize}`);
     }
 
-    // If we still need more storage, calculate the cost of new reservation
+    // Check for epoch coverage gaps
+    const epochGaps = verifyEpochCoverage(allocations, request);
+    console.log(`    Epoch coverage gaps: ${epochGaps.length}`);
+    epochGaps.forEach((gap, i) => {
+      console.log(`      Gap ${i}: epochs ${gap.start}-${gap.end}`);
+    });
+
+    // Calculate reservations needed for remaining size OR epoch gaps
     let needsNewReservation: { size: bigint; epochs: number; cost: bigint } | undefined = undefined;
+    let additionalCost = 0n;
+
+    // Case 1: We have remaining size that needs to be allocated
     if (remainingSize > 0n) {
       const epochs = request.endEpoch - request.startEpoch;
       const cost = await this.storageCostFn(Number(remainingSize), epochs);
@@ -203,26 +261,79 @@ export class WalrusStorageOptimizer {
         epochs,
         cost: cost.storageCost
       };
+      console.log(`    Need new reservation for remaining size: ${remainingSize} bytes, cost: ${cost.storageCost}`);
+    }
+    // Case 2: Size is covered, but epoch range has gaps
+    else if (epochGaps.length > 0) {
+      // We need to reserve the full request size for the uncovered epoch periods
+      // Calculate total cost for all gaps
+      for (const gap of epochGaps) {
+        const gapEpochs = gap.end - gap.start;
+        const gapCost = await this.storageCostFn(Number(request.size), gapEpochs);
+        additionalCost += gapCost.storageCost;
+        console.log(`      Gap ${gap.start}-${gap.end}: ${gapEpochs} epochs, cost: ${gapCost.storageCost}`);
+      }
+
+      // For simplicity, combine all gaps into one "new reservation" entry
+      // In practice, this would be multiple reserve_space operations
+      const totalGapEpochs = epochGaps.reduce((sum, gap) => sum + (gap.end - gap.start), 0);
+      needsNewReservation = {
+        size: request.size,
+        epochs: totalGapEpochs,
+        cost: additionalCost
+      };
+      console.log(`    Need new reservation for epoch gaps: ${request.size} bytes for ${totalGapEpochs} total epochs, cost: ${additionalCost}`);
     }
 
     const totalCost = allocations.reduce((sum, a) => sum + a.cost, 0n) +
       (needsNewReservation?.cost || 0n);
+
+    console.log(`    Final total cost: ${totalCost}`);
 
     return { allocations, totalCost, needsNewReservation };
   }
 
   /**
    * Dynamic Programming approach for optimal subset selection
-   * Uses KB units to reduce computational complexity
+   * OPTIMIZATION: Uses adaptive granularity based on request size
+   * - Small requests (<1 GiB): Use KB units
+   * - Large requests (>=1 GiB): Use MiB units
+   * - Very large requests (>=10 GiB): Skip DP, use greedy only
    */
   private async dynamicProgrammingAllocation(
     request: StorageRequest,
     availableStorage: StorageObject[]
   ): Promise<OptimizationResult> {
-    // Convert bytes to KB for DP calculations (reduces iterations by 1024x)
-    const BYTES_TO_KB = 1024;
-    const targetSizeKB = Math.ceil(Number(request.size) / BYTES_TO_KB);
+    const ONE_GIB = 1024 * 1024 * 1024;
+    const TEN_GIB = 10 * ONE_GIB;
+
+    // OPTIMIZATION 1: For very large requests (>=10 GiB), skip DP entirely
+    // DP becomes too slow, use greedy algorithm instead
+    if (Number(request.size) >= TEN_GIB) {
+      console.log(`[DP] Request too large (${Number(request.size)} bytes), using greedy instead`);
+      return this.greedyAllocation(request, availableStorage);
+    }
+
+    // OPTIMIZATION 2: Use adaptive granularity
+    // Small requests: KB units, Large requests: MiB units
+    const UNIT_SIZE = Number(request.size) >= ONE_GIB
+      ? 1024 * 1024  // MiB for large requests
+      : 1024;         // KB for small requests
+
+    const targetSizeUnits = Math.ceil(Number(request.size) / UNIT_SIZE);
     const n = availableStorage.length;
+
+    // OPTIMIZATION 3: Add complexity limit
+    // If DP table would be too large, fall back to greedy
+    const MAX_DP_ITERATIONS = 100_000_000; // 100M iterations max
+    const estimatedIterations = n * targetSizeUnits * (targetSizeUnits / 2);
+
+    if (estimatedIterations > MAX_DP_ITERATIONS) {
+      console.log(`[DP] Estimated iterations (${estimatedIterations}) exceeds limit, using greedy instead`);
+      return this.greedyAllocation(request, availableStorage);
+    }
+
+    console.log(`[DP] Using ${UNIT_SIZE === 1024 ? 'KB' : 'MiB'} units, target=${targetSizeUnits}, iterations≈${estimatedIterations.toLocaleString()}`);
 
     // Create DP table: dp[i][size] = minimum cost to achieve 'size' using first i objects
     const dp: Map<string, { cost: bigint; allocations: StorageAllocation[] }> = new Map();
@@ -234,29 +345,29 @@ export class WalrusStorageOptimizer {
     for (let i = 1; i <= n; i++) {
       const storage = availableStorage[i - 1];
       const overlap = getOverlapPeriod(storage, request);
-      const maxUsableSizeKB = Math.floor(Number(storage.storageSize) / BYTES_TO_KB);
+      const maxUsableSizeUnits = Math.floor(Number(storage.storageSize) / UNIT_SIZE);
 
-      for (let sizeKB = 0; sizeKB <= targetSizeKB; sizeKB++) {
+      for (let sizeUnits = 0; sizeUnits <= targetSizeUnits; sizeUnits++) {
         // Option 1: Don't use this storage object
-        const prevKey = `${i - 1},${sizeKB}`;
+        const prevKey = `${i - 1},${sizeUnits}`;
         if (dp.has(prevKey)) {
           const prev = dp.get(prevKey)!;
-          dp.set(`${i},${sizeKB}`, prev);
+          dp.set(`${i},${sizeUnits}`, prev);
         }
 
         // Option 2: Use part or all of this storage object
-        for (let useSizeKB = 1; useSizeKB <= Math.min(maxUsableSizeKB, sizeKB); useSizeKB++) {
-          const remainingSizeKB = sizeKB - useSizeKB;
-          const prevKey = `${i - 1},${remainingSizeKB}`;
+        for (let useSizeUnits = 1; useSizeUnits <= Math.min(maxUsableSizeUnits, sizeUnits); useSizeUnits++) {
+          const remainingSizeUnits = sizeUnits - useSizeUnits;
+          const prevKey = `${i - 1},${remainingSizeUnits}`;
 
           if (dp.has(prevKey)) {
             const prev = dp.get(prevKey)!;
-            // Convert KB back to bytes for cost calculation
-            const usedSizeBytes = BigInt(useSizeKB * BYTES_TO_KB);
+            // Convert units back to bytes for cost calculation
+            const usedSizeBytes = BigInt(useSizeUnits * UNIT_SIZE);
             const cost = calculateProRatedPrice(storage, usedSizeBytes, overlap.start, overlap.end);
             const totalCost = prev.cost + cost;
 
-            const currentKey = `${i},${sizeKB}`;
+            const currentKey = `${i},${sizeUnits}`;
             if (!dp.has(currentKey) || dp.get(currentKey)!.cost > totalCost) {
               dp.set(currentKey, {
                 cost: totalCost,
@@ -283,7 +394,7 @@ export class WalrusStorageOptimizer {
     let bestResult: OptimizationResult | null = null;
 
     // Check if we found a complete solution
-    const completeKey = `${n},${targetSizeKB}`;
+    const completeKey = `${n},${targetSizeUnits}`;
     if (dp.has(completeKey)) {
       const result = dp.get(completeKey)!;
       bestResult = {
@@ -298,17 +409,17 @@ export class WalrusStorageOptimizer {
         size: 0
       };
 
-      for (let sizeKB = 0; sizeKB < targetSizeKB; sizeKB++) {
-        const key = `${n},${sizeKB}`;
+      for (let sizeUnits = 0; sizeUnits < targetSizeUnits; sizeUnits++) {
+        const key = `${n},${sizeUnits}`;
         if (dp.has(key)) {
           const result = dp.get(key)!;
           if (result.cost < bestPartial.cost) {
-            bestPartial = { ...result, size: sizeKB };
+            bestPartial = { ...result, size: sizeUnits };
           }
         }
       }
 
-      // Convert KB back to bytes for remaining size
+      // Convert units back to bytes for remaining size
       const allocatedBytes = bestPartial.allocations.reduce((sum, a) => sum + a.usedSize, 0n);
       const remainingSize = request.size - allocatedBytes;
       const epochs = request.endEpoch - request.startEpoch;
@@ -325,7 +436,41 @@ export class WalrusStorageOptimizer {
       };
     }
 
-    return bestResult || this.createNewReservation(request);
+    if (!bestResult) {
+      return this.createNewReservation(request);
+    }
+
+    // Check for epoch coverage gaps (same as greedy algorithm)
+    const epochGaps = verifyEpochCoverage(bestResult.allocations, request);
+
+    if (epochGaps.length > 0) {
+      // We have epoch gaps that need to be filled
+      let additionalCost = 0n;
+
+      for (const gap of epochGaps) {
+        const gapEpochs = gap.end - gap.start;
+        const gapCost = await this.storageCostFn(Number(request.size), gapEpochs);
+        additionalCost += gapCost.storageCost;
+      }
+
+      const totalGapEpochs = epochGaps.reduce((sum, gap) => sum + (gap.end - gap.start), 0);
+
+      // Update or create needsNewReservation
+      if (bestResult.needsNewReservation) {
+        // Combine remaining size reservation with epoch gap reservation
+        bestResult.totalCost += additionalCost;
+        // Note: This is a simplification - in reality we'd need multiple reservations
+      } else {
+        bestResult.needsNewReservation = {
+          size: request.size,
+          epochs: totalGapEpochs,
+          cost: additionalCost
+        };
+        bestResult.totalCost += additionalCost;
+      }
+    }
+
+    return bestResult;
   }
 
   /**
@@ -396,27 +541,55 @@ export class WalrusStorageOptimizer {
       }
     }
 
-    const totalCost = greedyAllocations.reduce((sum, a) => sum + a.cost, 0n);
+    let totalCost = greedyAllocations.reduce((sum, a) => sum + a.cost, 0n);
+    let needsNewReservation: { size: bigint; epochs: number; cost: bigint } | undefined = undefined;
 
     // Check if we need new reservation for remaining size
     if (remainingSize > 0n) {
       const epochs = request.endEpoch - request.startEpoch;
       const newReservationCost = await this.storageCostFn(Number(remainingSize), epochs);
 
-      return {
-        allocations: greedyAllocations,
-        totalCost: totalCost + newReservationCost.storageCost,
-        needsNewReservation: {
-          size: remainingSize,
-          epochs,
-          cost: newReservationCost.storageCost
-        }
+      needsNewReservation = {
+        size: remainingSize,
+        epochs,
+        cost: newReservationCost.storageCost
       };
+      totalCost += newReservationCost.storageCost;
+    }
+
+    // Check for epoch coverage gaps (same as other algorithms)
+    const epochGaps = verifyEpochCoverage(greedyAllocations, request);
+
+    if (epochGaps.length > 0) {
+      // We have epoch gaps that need to be filled
+      let additionalCost = 0n;
+
+      for (const gap of epochGaps) {
+        const gapEpochs = gap.end - gap.start;
+        const gapCost = await this.storageCostFn(Number(request.size), gapEpochs);
+        additionalCost += gapCost.storageCost;
+      }
+
+      const totalGapEpochs = epochGaps.reduce((sum, gap) => sum + (gap.end - gap.start), 0);
+
+      // Update or create needsNewReservation
+      if (needsNewReservation) {
+        // Combine remaining size reservation with epoch gap reservation
+        totalCost += additionalCost;
+      } else {
+        needsNewReservation = {
+          size: request.size,
+          epochs: totalGapEpochs,
+          cost: additionalCost
+        };
+        totalCost += additionalCost;
+      }
     }
 
     return {
       allocations: greedyAllocations,
-      totalCost
+      totalCost,
+      needsNewReservation
     };
   }
 
