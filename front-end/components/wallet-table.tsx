@@ -62,7 +62,7 @@ export function WalletTable({ items }: WalletTableProps) {
                   checked={allSelected}
                   onCheckedChange={toggleAll}
                   aria-label="Select all"
-                  className="border-2 border-[#97f0e5] data-[state=checked]:bg-[#97f0e5] data-[state=checked]:text-black"
+                  className="border-2 border-[#97f0e5] data-[state=checked]:bg-[#97f0e5] data-[state=checked]:text-black cursor-pointer"
                   ref={(el) => {
                     if (el && someSelected) {
                       el.dataset.state = "indeterminate";
@@ -90,12 +90,12 @@ export function WalletTable({ items }: WalletTableProps) {
                   className="border-b border-[#97f0e5]/20 hover:bg-[#97f0e5]/5 transition-colors cursor-pointer"
                   onClick={() => toggleItem(item.id)}
                 >
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selectedItems.includes(item.id)}
                       onCheckedChange={() => toggleItem(item.id)}
                       aria-label={`Select ${item.objectId}`}
-                      className="border-2 border-[#97f0e5] data-[state=checked]:bg-[#97f0e5] data-[state=checked]:text-black"
+                      className="border-2 border-[#97f0e5] data-[state=checked]:bg-[#97f0e5] data-[state=checked]:text-black cursor-pointer"
                     />
                   </TableCell>
                   <TableCell className="font-mono text-sm">
