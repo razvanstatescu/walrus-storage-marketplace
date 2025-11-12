@@ -58,13 +58,13 @@ export default function WalletPage() {
             <TabsList className="w-full sm:w-auto bg-white/50 border-2 border-[#97f0e5] rounded-xl p-1 mb-6">
               <TabsTrigger
                 value="storage"
-                className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold cursor-pointer"
+                className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold cursor-pointer transition-all duration-300 ease-in-out"
               >
                 My Storage
               </TabsTrigger>
               <TabsTrigger
                 value="blobs"
-                className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold cursor-pointer"
+                className="rounded-lg data-[state=active]:bg-[#97f0e5] data-[state=active]:text-black font-bold cursor-pointer transition-all duration-300 ease-in-out"
               >
                 My Blobs
               </TabsTrigger>
