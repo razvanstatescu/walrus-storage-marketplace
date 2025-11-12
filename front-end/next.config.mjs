@@ -6,6 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  serverExternalPackages: ['@mysten/walrus'],
 }
 
 export default nextConfig

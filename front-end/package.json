@@ -13,6 +13,7 @@
     "@mysten/bcs": "^1.9.2",
     "@mysten/dapp-kit": "^0.17.7",
     "@mysten/sui": "^1.44.0",
+    "@mysten/walrus": "^0.8.3",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",

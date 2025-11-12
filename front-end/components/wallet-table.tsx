@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -21,9 +22,19 @@ interface WalletItem {
 
 interface WalletTableProps {
   items: WalletItem[];
+  isLoading?: boolean;
+  error?: string | null;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
 }
 
-export function WalletTable({ items }: WalletTableProps) {
+export function WalletTable({
+  items,
+  isLoading = false,
+  error = null,
+  hasMore = false,
+  onLoadMore,
+}: WalletTableProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   // Format object ID to show first 6 and last 4 characters
@@ -71,16 +82,28 @@ export function WalletTable({ items }: WalletTableProps) {
                 />
               </TableHead>
               <TableHead className="font-bold text-black">Object ID</TableHead>
-              <TableHead className="font-bold text-black">Size</TableHead>
+              <TableHead className="font-bold text-black">Storage Size</TableHead>
               <TableHead className="font-bold text-black">Start Epoch</TableHead>
               <TableHead className="font-bold text-black">End Epoch</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.length === 0 ? (
+            {error ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-red-600">
+                  Error: {error}
+                </TableCell>
+              </TableRow>
+            ) : isLoading && items.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8 text-gray-600">
-                  No items found
+                  Loading storage objects...
+                </TableCell>
+              </TableRow>
+            ) : items.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-gray-600">
+                  No storage objects found
                 </TableCell>
               </TableRow>
             ) : (
@@ -98,8 +121,18 @@ export function WalletTable({ items }: WalletTableProps) {
                       className="border-2 border-[#97f0e5] data-[state=checked]:bg-[#97f0e5] data-[state=checked]:text-black cursor-pointer"
                     />
                   </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {formatObjectId(item.objectId)}
+                  <TableCell
+                    className="font-mono text-sm"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_EXPLORER_URL}/object/${item.objectId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                    >
+                      {formatObjectId(item.objectId)}
+                    </a>
                   </TableCell>
                   <TableCell className="font-bold">{item.size}</TableCell>
                   <TableCell>{item.startEpoch}</TableCell>
@@ -110,6 +143,20 @@ export function WalletTable({ items }: WalletTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      {/* Load More Button */}
+      {hasMore && !error && (
+        <div className="mt-4 text-center">
+          <Button
+            onClick={onLoadMore}
+            disabled={isLoading}
+            variant="outline"
+            className="rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+          >
+            {isLoading ? "Loading..." : "Load More"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

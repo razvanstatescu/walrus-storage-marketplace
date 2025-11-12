@@ -10,6 +10,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
     variables: {
       packageId: process.env.NEXT_PUBLIC_PACKAGE_ID || '',
       marketplaceConfigId: process.env.NEXT_PUBLIC_MARKETPLACE_CONFIG_ID || '',
+      storageObjectType: process.env.NEXT_PUBLIC_STORAGE_OBJECT_TYPE || 'walrus::storage_resource::Storage',
+      blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
     }
   },
   devnet: {
@@ -17,6 +19,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
     variables: {
       packageId: process.env.NEXT_PUBLIC_PACKAGE_ID || '',
       marketplaceConfigId: process.env.NEXT_PUBLIC_MARKETPLACE_CONFIG_ID || '',
+      storageObjectType: process.env.NEXT_PUBLIC_STORAGE_OBJECT_TYPE || 'walrus::storage_resource::Storage',
+      blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
     }
   },
   testnet: {
@@ -24,6 +28,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
     variables: {
       packageId: process.env.NEXT_PUBLIC_PACKAGE_ID || '',
       marketplaceConfigId: process.env.NEXT_PUBLIC_MARKETPLACE_CONFIG_ID || '',
+      storageObjectType: process.env.NEXT_PUBLIC_STORAGE_OBJECT_TYPE || 'walrus::storage_resource::Storage',
+      blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
     }
   },
   mainnet: {
@@ -31,6 +37,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
     variables: {
       packageId: process.env.NEXT_PUBLIC_PACKAGE_ID || '',
       marketplaceConfigId: process.env.NEXT_PUBLIC_MARKETPLACE_CONFIG_ID || '',
+      storageObjectType: process.env.NEXT_PUBLIC_STORAGE_OBJECT_TYPE || 'walrus::storage_resource::Storage',
+      blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
     }
   },
 })
