@@ -4,11 +4,6 @@ import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Table,
   TableBody,
   TableCell,
@@ -68,21 +63,17 @@ export function WalletTable({
 
   // Toggle individual item selection
   const toggleItem = (id: string) => {
-    const item = items.find((i) => i.id === id);
-    if (item && isExpired(item)) return; // Don't allow selection of expired items
-
     setSelectedItems((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
-  // Toggle all items selection (only non-expired items)
+  // Toggle all items selection
   const toggleAll = () => {
-    const selectableItems = items.filter((item) => !isExpired(item));
-    if (selectedItems.length === selectableItems.length) {
+    if (selectedItems.length === items.length) {
       setSelectedItems([]);
     } else {
-      setSelectedItems(selectableItems.map((item) => item.id));
+      setSelectedItems(items.map((item) => item.id));
     }
   };
 
@@ -136,60 +127,44 @@ export function WalletTable({
             ) : (
               items.map((item) => {
                 const expired = isExpired(item);
-                const tooltipMessage = `Can't list expired ${itemType === "storage" ? "storage" : "blob"}`;
 
                 return (
-                  <Tooltip key={item.id}>
-                    <TooltipTrigger asChild>
-                      <TableRow
-                        className={`border-b border-[#97f0e5]/20 transition-colors ${
+                  <TableRow
+                    key={item.id}
+                    className={`border-b border-[#97f0e5]/20 transition-colors hover:bg-[#97f0e5]/5 cursor-pointer`}
+                    onClick={() => toggleItem(item.id)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedItems.includes(item.id)}
+                        onCheckedChange={() => toggleItem(item.id)}
+                        aria-label={`Select ${item.objectId}`}
+                        className={`cursor-pointer ${
                           expired
-                            ? "cursor-not-allowed hover:bg-transparent"
-                            : "hover:bg-[#97f0e5]/5 cursor-pointer"
+                            ? "border-2 border-red-500 data-[state=checked]:bg-red-500 data-[state=checked]:text-white data-[state=checked]:border-red-500"
+                            : "border-2 border-[#97f0e5] data-[state=checked]:bg-[#97f0e5] data-[state=checked]:text-black data-[state=checked]:border-[#97f0e5]"
                         }`}
-                        onClick={() => !expired && toggleItem(item.id)}
+                      />
+                    </TableCell>
+                    <TableCell
+                      className="font-mono text-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <a
+                        href={`${process.env.NEXT_PUBLIC_EXPLORER_URL}/object/${item.objectId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
                       >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedItems.includes(item.id)}
-                            onCheckedChange={() => toggleItem(item.id)}
-                            aria-label={`Select ${item.objectId}`}
-                            disabled={expired}
-                            className={`border-2 border-[#97f0e5] data-[state=checked]:bg-[#97f0e5] data-[state=checked]:text-black ${
-                              expired ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-                            }`}
-                          />
-                        </TableCell>
-                        <TableCell
-                          className="font-mono text-sm"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <a
-                            href={`${process.env.NEXT_PUBLIC_EXPLORER_URL}/object/${item.objectId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
-                          >
-                            {formatObjectId(item.objectId)}
-                          </a>
-                        </TableCell>
-                        <TableCell className="font-bold">{item.size}</TableCell>
-                        <TableCell>{item.startEpoch}</TableCell>
-                        <TableCell className={expired ? "font-bold text-red-600" : ""}>
-                          {item.endEpoch}
-                        </TableCell>
-                      </TableRow>
-                    </TooltipTrigger>
-                    {expired && (
-                      <TooltipContent
-                        side="top"
-                        className="bg-[#97f0e5] text-black border-2 border-[#97f0e5] font-bold"
-                        arrowClassName="!bg-[#97f0e5] !fill-[#97f0e5]"
-                      >
-                        {tooltipMessage}
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
+                        {formatObjectId(item.objectId)}
+                      </a>
+                    </TableCell>
+                    <TableCell className="font-bold">{item.size}</TableCell>
+                    <TableCell>{item.startEpoch}</TableCell>
+                    <TableCell className={expired ? "font-bold text-red-600" : ""}>
+                      {item.endEpoch}
+                    </TableCell>
+                  </TableRow>
                 );
               })
             )}

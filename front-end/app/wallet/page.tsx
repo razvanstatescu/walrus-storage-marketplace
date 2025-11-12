@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WalletTable } from "@/components/wallet-table";
 import { ListStorageButton } from "@/components/ListStorageButton";
 import { ListStorageDialog } from "@/components/ListStorageDialog";
+import { DestroyExpiredButton } from "@/components/DestroyExpiredButton";
+import { DestroyExpiredDialog } from "@/components/DestroyExpiredDialog";
 import { useWalletStorage } from "@/hooks/useWalletStorage";
 import { useWalletBlobs } from "@/hooks/useWalletBlobs";
 import { useWalrusEpoch } from "@/hooks/useWalrusEpoch";
@@ -39,6 +41,7 @@ export default function WalletPage() {
   const [selectedStorageIds, setSelectedStorageIds] = useState<string[]>([]);
   const [selectedBlobIds, setSelectedBlobIds] = useState<string[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDestroyDialogOpen, setIsDestroyDialogOpen] = useState(false);
 
   const {
     objects: storageObjects,
@@ -97,11 +100,37 @@ export default function WalletPage() {
     }
   }, [activeTab, selectedStorageIds, selectedBlobIds, storageObjects, blobObjects]);
 
+  // Helper function to check if an item is expired
+  const isItemExpired = (startEpoch: number, endEpoch: number) => {
+    if (currentEpoch === null) return false;
+    return endEpoch <= currentEpoch;
+  };
+
+  // Filter selected items into expired and non-expired (only for storage tab)
+  const { expiredStorageItems, nonExpiredItems } = useMemo(() => {
+    if (activeTab !== "storage") {
+      return { expiredStorageItems: [], nonExpiredItems: selectedItems };
+    }
+
+    const expired = selectedItems.filter((item) =>
+      isItemExpired(item.startEpoch, item.endEpoch)
+    );
+    const nonExpired = selectedItems.filter((item) =>
+      !isItemExpired(item.startEpoch, item.endEpoch)
+    );
+
+    return { expiredStorageItems: expired, nonExpiredItems: nonExpired };
+  }, [selectedItems, currentEpoch, activeTab]);
+
   // Get count of selected items for current tab
   const selectedCount =
     activeTab === "storage"
       ? selectedStorageIds.length
       : selectedBlobIds.length;
+
+  // Count of expired and non-expired selections
+  const expiredCount = expiredStorageItems.length;
+  const nonExpiredCount = nonExpiredItems.length;
 
   // Handle opening dialog
   const handleOpenDialog = () => {
@@ -111,6 +140,16 @@ export default function WalletPage() {
   // Handle closing dialog
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
+  };
+
+  // Handle opening destroy dialog
+  const handleOpenDestroyDialog = () => {
+    setIsDestroyDialogOpen(true);
+  };
+
+  // Handle closing destroy dialog
+  const handleCloseDestroyDialog = () => {
+    setIsDestroyDialogOpen(false);
   };
 
   // Handle successful listing - refresh storage and clear selections
@@ -123,6 +162,12 @@ export default function WalletPage() {
       refreshBlobs();
       setSelectedBlobIds([]);
     }
+  };
+
+  // Handle successful destroy - refresh storage and clear selections
+  const handleDestroySuccess = () => {
+    refreshStorage();
+    setSelectedStorageIds([]);
   };
 
   return (
@@ -182,16 +227,32 @@ export default function WalletPage() {
           </Tabs>
         </div>
 
-        {/* Fixed List Storage Button */}
-        <ListStorageButton count={selectedCount} onClick={handleOpenDialog} />
+        {/* Fixed Action Buttons */}
+        {/* Show Destroy button only on storage tab when expired items are selected */}
+        {activeTab === "storage" && expiredCount > 0 && (
+          <DestroyExpiredButton count={expiredCount} onClick={handleOpenDestroyDialog} />
+        )}
+
+        {/* Show List button when non-expired items are selected */}
+        {nonExpiredCount > 0 && (
+          <ListStorageButton count={nonExpiredCount} onClick={handleOpenDialog} />
+        )}
 
         {/* List Storage Dialog */}
         <ListStorageDialog
           isOpen={isDialogOpen}
           onClose={handleCloseDialog}
-          selectedItems={selectedItems}
+          selectedItems={nonExpiredItems}
           itemType={activeTab}
           onSuccess={handleListingSuccess}
+        />
+
+        {/* Destroy Expired Dialog */}
+        <DestroyExpiredDialog
+          isOpen={isDestroyDialogOpen}
+          onClose={handleCloseDestroyDialog}
+          selectedItems={expiredStorageItems}
+          onSuccess={handleDestroySuccess}
         />
       </DashboardLayout>
     </AppShell>
