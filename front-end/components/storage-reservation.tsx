@@ -12,6 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Lock } from "lucide-react";
+import { useWalletConnection } from "@/hooks/useWalletConnection";
+import { ConnectButton } from "@mysten/dapp-kit";
 
 type StorageUnit = "KB" | "MB" | "GB" | "TB";
 
@@ -31,6 +34,7 @@ export default function StorageReservation() {
   const [size, setSize] = useState<number>(100);
   const [unit, setUnit] = useState<StorageUnit>("GB");
   const [epochs, setEpochs] = useState<number[]>([30]); // Slider returns array
+  const { isConnected, connect } = useWalletConnection();
 
   // Calculate total size in GB
   const sizeInGB = (size * UNIT_MULTIPLIERS[unit]) / UNIT_MULTIPLIERS.GB;
@@ -40,8 +44,13 @@ export default function StorageReservation() {
   const usdCost = walCost * WAL_TO_USD;
   const savingsPercentage = ((SYSTEM_STORAGE_PREMIUM - 1) * 100).toFixed(0);
 
+  const handleReserveClick = () => {
+    // Handle reservation logic when connected
+    console.log("Reserving storage...");
+  };
+
   return (
-    <div className="backdrop-blur-md bg-[#97f0e5]/10 border-2 border-[#97f0e5] rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]">
+    <div className="backdrop-blur-md bg-[#97f0e5]/5 border-2 border-[#97f0e5] rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]">
       <h3 className="text-xl font-black mb-6">RESERVE STORAGE</h3>
 
       {/* Storage Size Input */}
@@ -118,12 +127,25 @@ export default function StorageReservation() {
       </div>
 
       {/* Buy Button */}
-      <Button
-        variant="outline"
-        className="w-full rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] h-12 cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-      >
-        Reserve Storage
-      </Button>
+      {!isConnected ? (
+        <ConnectButton
+          connectText={
+            <span className="flex items-center font-bold">
+              <Lock className="mr-2 h-4 w-4" />
+              Connect to reserve space
+            </span>
+          }
+          className="!w-full !rounded-xl !border-2 !border-[#97f0e5] !font-bold !shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] !h-12 !cursor-pointer hover:!bg-[#97f0e5]/10 hover:!shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:!translate-x-[2px] hover:!translate-y-[2px] !transition-all !bg-white !text-black !text-base !px-4 !py-2 [&>*]:!font-bold"
+        />
+      ) : (
+        <Button
+          variant="outline"
+          onClick={handleReserveClick}
+          className="w-full rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] h-12 cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+        >
+          Reserve Storage
+        </Button>
+      )}
 
       {/* Info Text */}
       <p className="text-xs text-gray-600 text-center mt-3">
