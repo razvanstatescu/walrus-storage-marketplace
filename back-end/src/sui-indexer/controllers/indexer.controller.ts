@@ -87,11 +87,15 @@ export class IndexerController {
   }
 
   /**
-   * Get all current listings
+   * Get all current listings (optionally filtered by seller)
    */
   @Get('listings')
-  async getAllListings() {
+  async getAllListings(@Query('seller') seller?: string) {
     try {
+      if (seller) {
+        const listings = await this.dbOps.getListingsBySeller(seller);
+        return listings;
+      }
       const listings = await this.dbOps.getAllListedStorage();
       return listings;
     } catch (error) {

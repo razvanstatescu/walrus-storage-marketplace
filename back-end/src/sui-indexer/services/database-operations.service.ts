@@ -207,9 +207,33 @@ export class DatabaseOperationsService {
    * Get all current listings
    */
   async getAllListedStorage() {
-    return this.prisma.listedStorage.findMany({
+    const listings = await this.prisma.listedStorage.findMany({
       orderBy: { listedAt: 'desc' },
     });
+
+    // Convert BigInt fields to strings for JSON serialization
+    return listings.map((listing) => ({
+      ...listing,
+      size: listing.size.toString(),
+      totalPrice: listing.totalPrice.toString(),
+    }));
+  }
+
+  /**
+   * Get listings by seller address
+   */
+  async getListingsBySeller(sellerAddress: string) {
+    const listings = await this.prisma.listedStorage.findMany({
+      where: { seller: sellerAddress },
+      orderBy: { listedAt: 'desc' },
+    });
+
+    // Convert BigInt fields to strings for JSON serialization
+    return listings.map((listing) => ({
+      ...listing,
+      size: listing.size.toString(),
+      totalPrice: listing.totalPrice.toString(),
+    }));
   }
 
   /**

@@ -53,12 +53,13 @@ export class StorageOptimizerService {
       });
 
       // 2. Convert Prisma ListedStorage to StorageObject format
+      // Note: size and totalPrice are returned as strings from the DB service for JSON serialization
       const storageObjects: StorageObject[] = listings.map((listing) => ({
         id: listing.storageId,
         startEpoch: listing.startEpoch,
         endEpoch: listing.endEpoch,
-        storageSize: listing.size,
-        price: listing.totalPrice,
+        storageSize: BigInt(listing.size),
+        price: BigInt(listing.totalPrice),
         owner: listing.seller,
       }));
       this.logger.log(`Converted to ${storageObjects.length} storage objects`);
