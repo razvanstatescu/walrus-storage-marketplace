@@ -127,7 +127,7 @@ export default function StorageReservation() {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
           <Label className="text-sm font-bold">RESERVATION EPOCHS</Label>
-          <span className="text-sm font-bold text-[#97f0e5]">
+          <span className="text-sm font-bold text-secondary">
             {epochs[0]} epochs
           </span>
         </div>
@@ -158,7 +158,7 @@ export default function StorageReservation() {
           ) : totalCostWal ? (
             <div className="text-2xl font-black">
               <span className="text-black">{totalCostWal}</span>{" "}
-              <span className="text-[#97f0e5]">WAL</span>
+              <span className="text-secondary">WAL</span>
             </div>
           ) : (
             <div className="text-2xl font-black text-gray-400">
@@ -197,7 +197,7 @@ export default function StorageReservation() {
         <ConnectButton
           connectText={
             <span className="flex items-center font-bold">
-              <Lock className="mr-2 h-4 w-4" />
+              <Lock className="mr-2 h-4 w-4 text-secondary" />
               Connect to reserve space
             </span>
           }

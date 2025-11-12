@@ -89,7 +89,9 @@ export default function MyListingsPage() {
         <div className="space-y-6">
           {/* Header */}
           <div>
-            <h1 className="text-4xl font-black">My Listings</h1>
+            <h1 className="text-4xl font-black">
+              <span className="text-secondary">My</span> Listings
+            </h1>
             <p className="text-gray-600 mt-2">
               Manage your active marketplace listings
             </p>
@@ -106,7 +108,7 @@ export default function MyListingsPage() {
 
             <div className="backdrop-blur-md bg-[#97f0e5]/5 border-2 border-[#97f0e5] rounded-xl p-4">
               <div className="text-sm text-gray-600">Selected</div>
-              <div className="text-2xl font-bold mt-1">
+              <div className="text-2xl font-bold mt-1 text-black">
                 {selectedListingIds.length}
               </div>
             </div>
@@ -114,10 +116,12 @@ export default function MyListingsPage() {
             <div className="backdrop-blur-md bg-[#97f0e5]/5 border-2 border-[#97f0e5] rounded-xl p-4">
               <div className="text-sm text-gray-600">Total Value</div>
               <div className="text-2xl font-bold mt-1">
-                {formatWalPrice(
-                  listings.reduce((sum, l) => sum + l.totalPrice, 0n)
-                )}{" "}
-                WAL
+                <span className="text-black">
+                  {formatWalPrice(
+                    listings.reduce((sum, l) => sum + l.totalPrice, 0n)
+                  )}
+                </span>{" "}
+                <span className="text-secondary">WAL</span>
               </div>
             </div>
           </div>
@@ -146,7 +150,7 @@ export default function MyListingsPage() {
             <div className="backdrop-blur-md bg-white/80 border-2 border-[#97f0e5] rounded-xl shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] p-6">
               <div className="text-center py-12">
                 <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
+                  className="mx-auto h-12 w-12 text-secondary"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

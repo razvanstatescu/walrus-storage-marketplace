@@ -228,7 +228,9 @@ export default function WalletPage() {
         <div className="space-y-6">
           {/* Header */}
           <div>
-            <h1 className="text-4xl font-black">My Wallet</h1>
+            <h1 className="text-4xl font-black">
+              <span className="text-secondary">My</span> Wallet
+            </h1>
             <p className="text-gray-600 mt-2">
               Manage your storage objects and blobs
             </p>

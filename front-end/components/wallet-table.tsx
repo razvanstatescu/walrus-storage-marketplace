@@ -91,7 +91,7 @@ export function WalletTable({
                   checked={allSelected}
                   onCheckedChange={toggleAll}
                   aria-label="Select all"
-                  className="border-2 !border-[#97f0e5] data-[state=checked]:!bg-[#97f0e5] data-[state=checked]:!text-black cursor-pointer"
+                  className="border-2 !border-[#97f0e5] data-[state=checked]:!bg-[#97f0e5] data-[state=checked]:!text-black data-[state=indeterminate]:!bg-secondary data-[state=indeterminate]:!border-secondary cursor-pointer"
                   ref={(el) => {
                     if (el && someSelected) {
                       el.dataset.state = "indeterminate";
@@ -154,7 +154,7 @@ export function WalletTable({
                         href={`${process.env.NEXT_PUBLIC_EXPLORER_URL}/object/${item.objectId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                        className="text-blue-600 hover:text-secondary hover:underline cursor-pointer transition-colors"
                       >
                         {formatObjectId(item.objectId)}
                       </a>

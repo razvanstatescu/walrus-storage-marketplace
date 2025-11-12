@@ -6,7 +6,7 @@ import { formatWalPrice } from "@/lib/utils/storagePrice";
 // Helper function to format storage size from bytes
 const BYTES_PER_UNIT_SIZE = 1024 * 1024; // 1 MiB
 
-const formatStorageSize = (bytesStr: string): string => {
+const formatStorageSize = (bytesStr: string): { value: string; unit: string } => {
   const bytes = BigInt(bytesStr);
   const sizeInBytes = Number(bytes);
   const units = Math.ceil(sizeInBytes / BYTES_PER_UNIT_SIZE);
@@ -16,12 +16,12 @@ const formatStorageSize = (bytesStr: string): string => {
   const tib = gib / 1024;
 
   if (tib >= 1) {
-    return `${tib.toFixed(2)} TiB`;
+    return { value: tib.toFixed(2), unit: "TiB" };
   }
   if (gib >= 1) {
-    return `${gib.toFixed(2)} GiB`;
+    return { value: gib.toFixed(2), unit: "GiB" };
   }
-  return `${mib.toLocaleString()} MiB`;
+  return { value: mib.toLocaleString(), unit: "MiB" };
 };
 
 export function MarketplaceAnalytics() {
@@ -31,7 +31,9 @@ export function MarketplaceAnalytics() {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-black">Marketplace Statistics</h2>
+        <h2 className="text-2xl font-black">
+          Marketplace <span className="text-secondary">Statistics</span>
+        </h2>
         <p className="text-gray-600 mt-2">
           Real-time analytics from the Walrus storage marketplace
         </p>
@@ -71,7 +73,7 @@ export function MarketplaceAnalytics() {
               <span className="text-black">
                 {formatWalPrice(BigInt(analytics.totalValueListed), 4)}
               </span>{" "}
-              <span className="text-[#97f0e5]">WAL</span>
+              <span className="text-secondary">WAL</span>
             </div>
           </div>
 
@@ -79,7 +81,12 @@ export function MarketplaceAnalytics() {
           <div className="backdrop-blur-md bg-[#97f0e5]/5 border-2 border-[#97f0e5] rounded-xl p-4">
             <div className="text-sm text-gray-600">Storage Available</div>
             <div className="text-2xl font-bold mt-1">
-              {formatStorageSize(analytics.totalSizeListed)}
+              <span className="text-black">
+                {formatStorageSize(analytics.totalSizeListed).value}
+              </span>{" "}
+              <span className="text-secondary">
+                {formatStorageSize(analytics.totalSizeListed).unit}
+              </span>
             </div>
           </div>
         </div>

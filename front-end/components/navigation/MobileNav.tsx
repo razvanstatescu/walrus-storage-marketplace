@@ -74,7 +74,7 @@ export function MobileNav({
                     variant="outline"
                     className="w-full justify-start gap-2 rounded-xl border-2 border-[#97f0e5] font-bold"
                   >
-                    <Icon className="h-5 w-5" /> {platform.label}
+                    <Icon className="h-5 w-5 text-black" /> {platform.label}
                   </Button>
                 );
               })}

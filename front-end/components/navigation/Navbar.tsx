@@ -50,7 +50,7 @@ export function Navbar({
             {title === "Storewave" ? (
               <>
                 <span className="text-black">Store</span>
-                <span className="text-[#97f0e5]">wave</span>
+                <span className="text-primary">wave</span>
               </>
             ) : (
               title
@@ -119,7 +119,7 @@ export function Navbar({
                     onClick={() => disconnect()}
                     className="cursor-pointer rounded-lg font-bold"
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut className="mr-2 h-4 w-4 text-secondary" />
                     Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>

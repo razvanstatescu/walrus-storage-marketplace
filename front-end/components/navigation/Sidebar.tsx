@@ -61,7 +61,9 @@ export function Sidebar({
 
       {showPlatforms && (
         <div className="mt-8">
-          <h2 className="text-lg font-black mb-4">Useful Links</h2>
+          <h2 className="text-lg font-black mb-4">
+            <span className="text-secondary">Useful</span> Links
+          </h2>
           <div className="space-y-3">
             {platforms.map((platform) => {
               const Icon = platform.icon;
@@ -71,7 +73,7 @@ export function Sidebar({
                   variant="outline"
                   className="w-full justify-start gap-2 rounded-xl border-2 border-[#97f0e5] font-bold shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[1px_1px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                 >
-                  <Icon className="h-5 w-5" /> {platform.label}
+                  <Icon className="h-5 w-5 text-black" /> {platform.label}
                 </Button>
               );
             })}
