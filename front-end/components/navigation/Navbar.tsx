@@ -39,7 +39,7 @@ export function Navbar({
   };
 
   return (
-    <header className="border-b-4 border-[#97f0e5] p-4 sm:p-6 bg-white/40 backdrop-blur-md">
+    <header className="border-b-2 border-[#97f0e5] p-4 sm:p-6 bg-white/40 backdrop-blur-md">
       <div className="flex justify-between items-center gap-4">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight">
           {title}
