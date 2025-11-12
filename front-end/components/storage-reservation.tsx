@@ -118,7 +118,10 @@ export default function StorageReservation() {
       </div>
 
       {/* Buy Button */}
-      <Button className="w-full bg-[#97f0e5] hover:bg-[#97f0e5]/80 text-black rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] h-12">
+      <Button
+        variant="outline"
+        className="w-full rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] h-12 cursor-pointer hover:bg-[#97f0e5]/20"
+      >
         Reserve Storage
       </Button>
 
