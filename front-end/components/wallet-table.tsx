@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,8 @@ interface WalletTableProps {
   error?: string | null;
   hasMore?: boolean;
   onLoadMore?: () => void;
+  selectedItems?: string[];
+  onSelectionChange?: (selectedIds: string[]) => void;
 }
 
 export function WalletTable({
@@ -34,8 +36,14 @@ export function WalletTable({
   error = null,
   hasMore = false,
   onLoadMore,
+  selectedItems: externalSelectedItems,
+  onSelectionChange,
 }: WalletTableProps) {
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [internalSelectedItems, setInternalSelectedItems] = useState<string[]>([]);
+
+  // Use external selection if provided, otherwise use internal state
+  const selectedItems = externalSelectedItems !== undefined ? externalSelectedItems : internalSelectedItems;
+  const setSelectedItems = onSelectionChange || setInternalSelectedItems;
 
   // Format object ID to show first 6 and last 4 characters
   const formatObjectId = (objectId: string) => {

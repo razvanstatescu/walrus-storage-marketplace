@@ -59,3 +59,20 @@ export interface StorageCostState {
   isLoading: boolean;
   error: string | null;
 }
+
+export type ItemType = 'storage' | 'blobs';
+
+export interface ListingDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedItems: WalrusStorage[] | WalrusBlob[];
+  itemType: ItemType;
+}
+
+export interface PriceCalculation {
+  totalUnits: number;
+  userPricePerUnit: number;
+  totalUserPrice: number;
+  systemPricePerUnit: bigint | null;
+  isLoadingSystemPrice: boolean;
+}
