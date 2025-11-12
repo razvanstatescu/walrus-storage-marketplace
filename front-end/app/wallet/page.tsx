@@ -186,26 +186,40 @@ export default function WalletPage() {
 
   // Handle successful listing - refresh storage and clear selections
   const handleListingSuccess = () => {
-    // Refresh the appropriate tab
+    // Clear selections immediately
     if (activeTab === "storage") {
-      refreshStorage();
       setSelectedStorageIds([]);
     } else {
-      refreshBlobs();
       setSelectedBlobIds([]);
     }
+    // Delay refresh by 500ms to allow indexer to process transaction
+    setTimeout(() => {
+      if (activeTab === "storage") {
+        refreshStorage();
+      } else {
+        refreshBlobs();
+      }
+    }, 500);
   };
 
   // Handle successful destroy - refresh storage and clear selections
   const handleDestroySuccess = () => {
-    refreshStorage();
+    // Clear selections immediately
     setSelectedStorageIds([]);
+    // Delay refresh by 500ms to allow indexer to process transaction
+    setTimeout(() => {
+      refreshStorage();
+    }, 500);
   };
 
   // Handle successful blob destroy - refresh blobs and clear selections
   const handleDestroyBlobsSuccess = () => {
-    refreshBlobs();
+    // Clear selections immediately
     setSelectedBlobIds([]);
+    // Delay refresh by 500ms to allow indexer to process transaction
+    setTimeout(() => {
+      refreshBlobs();
+    }, 500);
   };
 
   return (

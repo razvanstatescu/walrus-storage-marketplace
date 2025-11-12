@@ -16,7 +16,7 @@ interface SidebarProps {
 }
 
 const defaultNavItems: NavItem[] = [
-  { href: "/", label: "Reserve" },
+  { href: "/", label: "Buy Storage" },
   { href: "/wallet", label: "My Wallet" },
   { href: "/my-listings", label: "My Listings" },
 ];
@@ -61,7 +61,7 @@ export function Sidebar({
 
       {showPlatforms && (
         <div className="mt-8">
-          <h2 className="text-xl font-black mb-4">PLATFORMS</h2>
+          <h2 className="text-lg font-black mb-4">Useful Links</h2>
           <div className="space-y-3">
             {platforms.map((platform) => {
               const Icon = platform.icon;

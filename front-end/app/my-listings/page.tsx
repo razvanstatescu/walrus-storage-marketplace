@@ -70,8 +70,12 @@ export default function MyListingsPage() {
 
   // Handle successful delisting
   const handleDelistSuccess = () => {
+    // Clear selections immediately
     setSelectedListingIds([]);
-    refetch();
+    // Delay refresh by 2.5s to allow indexer to process transaction
+    setTimeout(() => {
+      refetch();
+    }, 2500);
   };
 
   // Clear selection
