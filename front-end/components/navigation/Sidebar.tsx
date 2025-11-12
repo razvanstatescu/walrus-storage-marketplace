@@ -14,10 +14,8 @@ interface SidebarProps {
 }
 
 const defaultNavItems: NavItem[] = [
-  { href: "#", label: "Dashboard", active: true },
-  { href: "#", label: "Analytics" },
-  { href: "#", label: "Calendar" },
-  { href: "#", label: "Messages" },
+  { href: "/", label: "Reserve", active: true },
+  { href: "/wallet", label: "My Wallet" },
 ];
 
 const platforms = [
