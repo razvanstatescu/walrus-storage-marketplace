@@ -29,6 +29,8 @@ export interface OptimizationResult {
   totalCost: bigint;
   needsNewReservation?: {
     size: bigint;
+    startEpoch: number;
+    endEpoch: number;
     epochs: number;
     cost: bigint;
   };
@@ -249,7 +251,7 @@ export class WalrusStorageOptimizer {
     });
 
     // Calculate reservations needed for remaining size OR epoch gaps
-    let needsNewReservation: { size: bigint; epochs: number; cost: bigint } | undefined = undefined;
+    let needsNewReservation: { size: bigint; startEpoch: number; endEpoch: number; epochs: number; cost: bigint } | undefined = undefined;
     let additionalCost = 0n;
 
     // Case 1: We have remaining size that needs to be allocated
@@ -258,6 +260,8 @@ export class WalrusStorageOptimizer {
       const cost = await this.storageCostFn(Number(remainingSize), epochs);
       needsNewReservation = {
         size: remainingSize,
+        startEpoch: request.startEpoch,
+        endEpoch: request.endEpoch,
         epochs,
         cost: cost.storageCost
       };
@@ -274,15 +278,19 @@ export class WalrusStorageOptimizer {
         console.log(`      Gap ${gap.start}-${gap.end}: ${gapEpochs} epochs, cost: ${gapCost.storageCost}`);
       }
 
-      // For simplicity, combine all gaps into one "new reservation" entry
-      // In practice, this would be multiple reserve_space operations
+      // For single gap (most common case), use the gap's exact epoch range
+      // For multiple gaps, we'll use the first gap for now (this may need refinement)
       const totalGapEpochs = epochGaps.reduce((sum, gap) => sum + (gap.end - gap.start), 0);
+      const primaryGap = epochGaps[0]; // Use first gap for epoch range
+
       needsNewReservation = {
         size: request.size,
+        startEpoch: primaryGap.start,
+        endEpoch: primaryGap.end,
         epochs: totalGapEpochs,
         cost: additionalCost
       };
-      console.log(`    Need new reservation for epoch gaps: ${request.size} bytes for ${totalGapEpochs} total epochs, cost: ${additionalCost}`);
+      console.log(`    Need new reservation for epoch gaps: ${request.size} bytes for epochs ${primaryGap.start}-${primaryGap.end} (${totalGapEpochs} total epochs), cost: ${additionalCost}`);
     }
 
     const totalCost = allocations.reduce((sum, a) => sum + a.cost, 0n) +
@@ -430,6 +438,8 @@ export class WalrusStorageOptimizer {
         totalCost: bestPartial.cost + newReservationCost.storageCost,
         needsNewReservation: {
           size: remainingSize,
+          startEpoch: request.startEpoch,
+          endEpoch: request.endEpoch,
           epochs,
           cost: newReservationCost.storageCost
         }
@@ -454,6 +464,7 @@ export class WalrusStorageOptimizer {
       }
 
       const totalGapEpochs = epochGaps.reduce((sum, gap) => sum + (gap.end - gap.start), 0);
+      const primaryGap = epochGaps[0]; // Use first gap for epoch range
 
       // Update or create needsNewReservation
       if (bestResult.needsNewReservation) {
@@ -463,6 +474,8 @@ export class WalrusStorageOptimizer {
       } else {
         bestResult.needsNewReservation = {
           size: request.size,
+          startEpoch: primaryGap.start,
+          endEpoch: primaryGap.end,
           epochs: totalGapEpochs,
           cost: additionalCost
         };
@@ -542,7 +555,7 @@ export class WalrusStorageOptimizer {
     }
 
     let totalCost = greedyAllocations.reduce((sum, a) => sum + a.cost, 0n);
-    let needsNewReservation: { size: bigint; epochs: number; cost: bigint } | undefined = undefined;
+    let needsNewReservation: { size: bigint; startEpoch: number; endEpoch: number; epochs: number; cost: bigint } | undefined = undefined;
 
     // Check if we need new reservation for remaining size
     if (remainingSize > 0n) {
@@ -551,6 +564,8 @@ export class WalrusStorageOptimizer {
 
       needsNewReservation = {
         size: remainingSize,
+        startEpoch: request.startEpoch,
+        endEpoch: request.endEpoch,
         epochs,
         cost: newReservationCost.storageCost
       };
@@ -571,6 +586,7 @@ export class WalrusStorageOptimizer {
       }
 
       const totalGapEpochs = epochGaps.reduce((sum, gap) => sum + (gap.end - gap.start), 0);
+      const primaryGap = epochGaps[0]; // Use first gap for epoch range
 
       // Update or create needsNewReservation
       if (needsNewReservation) {
@@ -579,6 +595,8 @@ export class WalrusStorageOptimizer {
       } else {
         needsNewReservation = {
           size: request.size,
+          startEpoch: primaryGap.start,
+          endEpoch: primaryGap.end,
           epochs: totalGapEpochs,
           cost: additionalCost
         };
@@ -605,6 +623,8 @@ export class WalrusStorageOptimizer {
       totalCost: cost.storageCost,
       needsNewReservation: {
         size: request.size,
+        startEpoch: request.startEpoch,
+        endEpoch: request.endEpoch,
         epochs,
         cost: cost.storageCost
       }
@@ -722,61 +742,84 @@ export function generateStorageOperations(
     operations.push({
       type: 'reserve_space',
       reserveSize: result.needsNewReservation.size,
-      startEpoch: requestStartEpoch,
-      endEpoch: requestEndEpoch,
+      startEpoch: result.needsNewReservation.startEpoch,
+      endEpoch: result.needsNewReservation.endEpoch,
       cost: result.needsNewReservation.cost,
-      description: `reserve_space(${Number(result.needsNewReservation.size) / (1024 * 1024)}MB, epochs ${requestStartEpoch}-${requestEndEpoch}) → cost: ${result.needsNewReservation.cost} FROST`
+      description: `reserve_space(${Number(result.needsNewReservation.size) / (1024 * 1024)}MB, epochs ${result.needsNewReservation.startEpoch}-${result.needsNewReservation.endEpoch}) → cost: ${result.needsNewReservation.cost} FROST`
     });
   }
 
   // Step 3: Fuse all storage objects into one if we have multiple pieces
   if (result.allocations.length > 1 || (result.allocations.length > 0 && result.needsNewReservation)) {
-    // Determine fusion strategy based on allocation characteristics
-    const allSameEpochRange = result.allocations.every(
-      a => a.usedStartEpoch === requestStartEpoch && a.usedEndEpoch === requestEndEpoch
+    // Create a list of all storage pieces (allocations + new reservation)
+    const allPieces: Array<{ startEpoch: number; endEpoch: number; size: bigint }> = [
+      ...result.allocations.map(a => ({
+        startEpoch: a.usedStartEpoch,
+        endEpoch: a.usedEndEpoch,
+        size: a.usedSize
+      }))
+    ];
+
+    if (result.needsNewReservation) {
+      allPieces.push({
+        startEpoch: result.needsNewReservation.startEpoch,
+        endEpoch: result.needsNewReservation.endEpoch,
+        size: result.needsNewReservation.size
+      });
+    }
+
+    // Sort by start epoch
+    const sortedPieces = allPieces.sort((a, b) => a.startEpoch - b.startEpoch);
+
+    // Check if all pieces have the same epoch range (use fuse_amount)
+    const allSameEpochRange = sortedPieces.every(
+      p => p.startEpoch === sortedPieces[0].startEpoch && p.endEpoch === sortedPieces[0].endEpoch
     );
 
-    if (allSameEpochRange && (!result.needsNewReservation ||
-        (requestStartEpoch === requestStartEpoch && requestEndEpoch === requestEndEpoch))) {
+    if (allSameEpochRange) {
       // All objects cover the same period - fuse by amount (combining sizes)
-      const fuseCount = result.allocations.length + (result.needsNewReservation ? 1 : 0) - 1;
+      const fuseCount = sortedPieces.length - 1;
       for (let i = 0; i < fuseCount; i++) {
         operations.push({
           type: 'fuse_amount',
-          description: `fuse_amount() → combine storage amounts (same epoch range)`
+          description: `fuse_amount() → combine storage amounts (same epoch range ${sortedPieces[0].startEpoch}-${sortedPieces[0].endEpoch})`
         });
       }
     } else {
-      // Objects cover different periods or mixed - use period fusion
-      // Sort allocations by start epoch
-      const sortedAllocations = [...result.allocations].sort((a, b) => a.usedStartEpoch - b.usedStartEpoch);
+      // Check if pieces are adjacent and same size (use fuse_period)
+      let allAdjacent = true;
+      let allSameSize = true;
+      const referenceSize = sortedPieces[0].size;
 
-      // Check if we can use fuse_period (adjacent periods, same size)
-      let canUseFusePeriod = true;
-      for (let i = 0; i < sortedAllocations.length - 1; i++) {
-        if (sortedAllocations[i].usedEndEpoch !== sortedAllocations[i + 1].usedStartEpoch ||
-            sortedAllocations[i].usedSize !== sortedAllocations[i + 1].usedSize) {
-          canUseFusePeriod = false;
-          break;
+      for (let i = 0; i < sortedPieces.length - 1; i++) {
+        if (sortedPieces[i].endEpoch !== sortedPieces[i + 1].startEpoch) {
+          allAdjacent = false;
+        }
+        if (sortedPieces[i].size !== referenceSize) {
+          allSameSize = false;
         }
       }
+      if (sortedPieces[sortedPieces.length - 1].size !== referenceSize) {
+        allSameSize = false;
+      }
 
-      if (canUseFusePeriod) {
-        const fuseCount = sortedAllocations.length - 1;
+      if (allAdjacent && allSameSize) {
+        // Perfect case: adjacent periods with same size - use fuse_period
+        const fuseCount = sortedPieces.length - 1;
         for (let i = 0; i < fuseCount; i++) {
           operations.push({
             type: 'fuse_period',
-            description: `fuse_period() → merge adjacent time periods (same size)`
+            description: `fuse_period() → merge epochs ${sortedPieces[i].startEpoch}-${sortedPieces[i].endEpoch} with ${sortedPieces[i + 1].startEpoch}-${sortedPieces[i + 1].endEpoch}`
           });
         }
       } else {
-        // Complex case: need multiple fusion operations
-        // This is a simplified approach - may need refinement based on actual requirements
-        const totalFusions = result.allocations.length + (result.needsNewReservation ? 1 : 0) - 1;
+        // Complex case: pieces are not adjacent or different sizes
+        // Fall back to fuse_amount (may not work in all cases)
+        const totalFusions = sortedPieces.length - 1;
         for (let i = 0; i < totalFusions; i++) {
           operations.push({
             type: 'fuse_amount',
-            description: `fuse_amount() → combine storage objects`
+            description: `fuse_amount() → combine storage objects (complex case)`
           });
         }
       }
