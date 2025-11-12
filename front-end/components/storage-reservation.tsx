@@ -97,8 +97,6 @@ export default function StorageReservation() {
 
   return (
     <div className="backdrop-blur-md bg-[#97f0e5]/5 border-2 border-[#97f0e5] rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]">
-      <h3 className="text-xl font-black mb-6">RESERVE STORAGE</h3>
-
       {/* Storage Size Input */}
       <div className="mb-6">
         <Label className="text-sm font-bold mb-2 block">STORAGE SIZE</Label>
@@ -158,8 +156,9 @@ export default function StorageReservation() {
               Loading...
             </div>
           ) : totalCostWal ? (
-            <div className="text-2xl font-black text-[#97f0e5]">
-              {totalCostWal} WAL
+            <div className="text-2xl font-black">
+              <span className="text-black">{totalCostWal}</span>{" "}
+              <span className="text-[#97f0e5]">WAL</span>
             </div>
           ) : (
             <div className="text-2xl font-black text-gray-400">

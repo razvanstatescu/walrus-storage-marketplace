@@ -6,7 +6,15 @@ export default function Dashboard() {
   return (
     <AppShell>
       <DashboardLayout>
-        <div className="mb-8">
+        <div className="space-y-6">
+          {/* Header */}
+          <div>
+            <h1 className="text-4xl font-black">Reserve Storage</h1>
+            <p className="text-gray-600 mt-2">
+              Reserve decentralized storage on the Walrus network
+            </p>
+          </div>
+
           <StorageReservation />
         </div>
 

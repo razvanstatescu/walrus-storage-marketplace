@@ -212,7 +212,13 @@ export default function WalletPage() {
     <AppShell>
       <DashboardLayout>
         <div className="space-y-6">
-          <h2 className="text-2xl sm:text-3xl font-black">MY WALLET</h2>
+          {/* Header */}
+          <div>
+            <h1 className="text-4xl font-black">My Wallet</h1>
+            <p className="text-gray-600 mt-2">
+              Manage your storage objects and blobs
+            </p>
+          </div>
 
           <Tabs
             defaultValue="storage"
