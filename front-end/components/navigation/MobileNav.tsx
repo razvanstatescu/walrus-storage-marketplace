@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
+import { Twitter, Github, Info } from "lucide-react";
 
 interface NavItem {
   href: string;
@@ -23,10 +23,9 @@ const defaultNavItems: NavItem[] = [
 ];
 
 const platforms = [
-  { icon: Instagram, label: "Instagram" },
-  { icon: Twitter, label: "Twitter" },
-  { icon: Linkedin, label: "LinkedIn" },
-  { icon: Youtube, label: "YouTube" },
+  { icon: Twitter, label: "X.com", href: "#" },
+  { icon: Github, label: "GitHub", href: "https://github.com/razvanstatescu/walrus-storage-marketplace" },
+  { icon: Info, label: "About", href: "#" },
 ];
 
 /**
@@ -64,20 +63,32 @@ export function MobileNav({
 
         {showPlatforms && (
           <div>
-            <h2 className="text-xl font-black mb-4">PLATFORMS</h2>
+            <h2 className="text-xl font-black mb-4">
+              <span className="text-secondary">Useful</span> Links
+            </h2>
             <div className="space-y-2">
               {platforms.map((platform) => {
                 const Icon = platform.icon;
                 return (
-                  <Button
-                    key={platform.label}
-                    variant="outline"
-                    className="w-full justify-start gap-2 rounded-xl border-2 border-[#97f0e5] font-bold"
-                  >
-                    <Icon className="h-5 w-5 text-black" /> {platform.label}
-                  </Button>
+                  <Link key={platform.label} href={platform.href} target={platform.href.startsWith('http') ? '_blank' : undefined} rel={platform.href.startsWith('http') ? 'noopener noreferrer' : undefined} className="block">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-2 rounded-xl border-2 border-[#97f0e5] font-bold"
+                    >
+                      <Icon className="h-5 w-5 text-black" /> {platform.label}
+                    </Button>
+                  </Link>
                 );
               })}
+            </div>
+
+            <div className="mt-6 p-4 rounded-xl border-2 border-[#97f0e5] bg-white/50">
+              <h3 className="text-sm font-black mb-2">
+                <span className="text-secondary">About</span>
+              </h3>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Storewave is the 1st Storage Marketplace on Walrus helping you get the best rates for Storage
+              </p>
             </div>
           </div>
         )}
