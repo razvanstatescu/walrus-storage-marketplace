@@ -9,6 +9,7 @@ import { ListStorageButton } from "@/components/ListStorageButton";
 import { ListStorageDialog } from "@/components/ListStorageDialog";
 import { useWalletStorage } from "@/hooks/useWalletStorage";
 import { useWalletBlobs } from "@/hooks/useWalletBlobs";
+import { useWalrusEpoch } from "@/hooks/useWalrusEpoch";
 import type { WalletItem, ItemType } from "@/types/storage";
 
 // Helper function to format storage size using Walrus SDK formula
@@ -56,6 +57,8 @@ export default function WalletPage() {
     loadMore: loadMoreBlobs,
     refresh: refreshBlobs,
   } = useWalletBlobs();
+
+  const { epoch: currentEpoch } = useWalrusEpoch();
 
   // Convert storage objects to wallet items
   const storageItems: WalletItem[] = useMemo(
@@ -158,6 +161,8 @@ export default function WalletPage() {
                 onLoadMore={loadMoreStorage}
                 selectedItems={selectedStorageIds}
                 onSelectionChange={setSelectedStorageIds}
+                currentEpoch={currentEpoch}
+                itemType="storage"
               />
             </TabsContent>
 
@@ -170,6 +175,8 @@ export default function WalletPage() {
                 onLoadMore={loadMoreBlobs}
                 selectedItems={selectedBlobIds}
                 onSelectionChange={setSelectedBlobIds}
+                currentEpoch={currentEpoch}
+                itemType="blobs"
               />
             </TabsContent>
           </Tabs>

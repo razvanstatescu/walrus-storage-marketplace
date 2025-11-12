@@ -4,6 +4,11 @@ import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Table,
   TableBody,
   TableCell,
@@ -28,6 +33,8 @@ interface WalletTableProps {
   onLoadMore?: () => void;
   selectedItems?: string[];
   onSelectionChange?: (selectedIds: string[]) => void;
+  currentEpoch?: number | null;
+  itemType?: "storage" | "blobs";
 }
 
 export function WalletTable({
@@ -38,12 +45,20 @@ export function WalletTable({
   onLoadMore,
   selectedItems: externalSelectedItems,
   onSelectionChange,
+  currentEpoch = null,
+  itemType = "storage",
 }: WalletTableProps) {
   const [internalSelectedItems, setInternalSelectedItems] = useState<string[]>([]);
 
   // Use external selection if provided, otherwise use internal state
   const selectedItems = externalSelectedItems !== undefined ? externalSelectedItems : internalSelectedItems;
   const setSelectedItems = onSelectionChange || setInternalSelectedItems;
+
+  // Check if an item is expired
+  const isExpired = (item: WalletItem) => {
+    if (currentEpoch === null) return false;
+    return item.endEpoch <= currentEpoch;
+  };
 
   // Format object ID to show first 6 and last 4 characters
   const formatObjectId = (objectId: string) => {
@@ -53,17 +68,21 @@ export function WalletTable({
 
   // Toggle individual item selection
   const toggleItem = (id: string) => {
+    const item = items.find((i) => i.id === id);
+    if (item && isExpired(item)) return; // Don't allow selection of expired items
+
     setSelectedItems((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
-  // Toggle all items selection
+  // Toggle all items selection (only non-expired items)
   const toggleAll = () => {
-    if (selectedItems.length === items.length) {
+    const selectableItems = items.filter((item) => !isExpired(item));
+    if (selectedItems.length === selectableItems.length) {
       setSelectedItems([]);
     } else {
-      setSelectedItems(items.map((item) => item.id));
+      setSelectedItems(selectableItems.map((item) => item.id));
     }
   };
 
@@ -115,38 +134,64 @@ export function WalletTable({
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item) => (
-                <TableRow
-                  key={item.id}
-                  className="border-b border-[#97f0e5]/20 hover:bg-[#97f0e5]/5 transition-colors cursor-pointer"
-                  onClick={() => toggleItem(item.id)}
-                >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selectedItems.includes(item.id)}
-                      onCheckedChange={() => toggleItem(item.id)}
-                      aria-label={`Select ${item.objectId}`}
-                      className="border-2 border-[#97f0e5] data-[state=checked]:bg-[#97f0e5] data-[state=checked]:text-black cursor-pointer"
-                    />
-                  </TableCell>
-                  <TableCell
-                    className="font-mono text-sm"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <a
-                      href={`${process.env.NEXT_PUBLIC_EXPLORER_URL}/object/${item.objectId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
-                    >
-                      {formatObjectId(item.objectId)}
-                    </a>
-                  </TableCell>
-                  <TableCell className="font-bold">{item.size}</TableCell>
-                  <TableCell>{item.startEpoch}</TableCell>
-                  <TableCell>{item.endEpoch}</TableCell>
-                </TableRow>
-              ))
+              items.map((item) => {
+                const expired = isExpired(item);
+                const tooltipMessage = `Can't list expired ${itemType === "storage" ? "storage" : "blob"}`;
+
+                return (
+                  <Tooltip key={item.id}>
+                    <TooltipTrigger asChild>
+                      <TableRow
+                        className={`border-b border-[#97f0e5]/20 transition-colors ${
+                          expired
+                            ? "cursor-not-allowed hover:bg-transparent"
+                            : "hover:bg-[#97f0e5]/5 cursor-pointer"
+                        }`}
+                        onClick={() => !expired && toggleItem(item.id)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedItems.includes(item.id)}
+                            onCheckedChange={() => toggleItem(item.id)}
+                            aria-label={`Select ${item.objectId}`}
+                            disabled={expired}
+                            className={`border-2 border-[#97f0e5] data-[state=checked]:bg-[#97f0e5] data-[state=checked]:text-black ${
+                              expired ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                            }`}
+                          />
+                        </TableCell>
+                        <TableCell
+                          className="font-mono text-sm"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <a
+                            href={`${process.env.NEXT_PUBLIC_EXPLORER_URL}/object/${item.objectId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                          >
+                            {formatObjectId(item.objectId)}
+                          </a>
+                        </TableCell>
+                        <TableCell className="font-bold">{item.size}</TableCell>
+                        <TableCell>{item.startEpoch}</TableCell>
+                        <TableCell className={expired ? "font-bold text-red-600" : ""}>
+                          {item.endEpoch}
+                        </TableCell>
+                      </TableRow>
+                    </TooltipTrigger>
+                    {expired && (
+                      <TooltipContent
+                        side="top"
+                        className="bg-[#97f0e5] text-black border-2 border-[#97f0e5] font-bold"
+                        arrowClassName="!bg-[#97f0e5] !fill-[#97f0e5]"
+                      >
+                        {tooltipMessage}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                );
+              })
             )}
           </TableBody>
         </Table>
