@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { WalletProviders } from '@/components/providers/WalletProviders'
+import { Toaster } from '@/components/ui/toaster'
 import '@mysten/dapp-kit/dist/index.css'
 import './globals.css'
 
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <WalletProviders>
           {children}
+          <Toaster />
           <Analytics />
         </WalletProviders>
       </body>

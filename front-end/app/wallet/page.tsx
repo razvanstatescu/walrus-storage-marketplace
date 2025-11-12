@@ -45,6 +45,7 @@ export default function WalletPage() {
     error: storageError,
     hasMore: hasMoreStorage,
     loadMore: loadMoreStorage,
+    refresh: refreshStorage,
   } = useWalletStorage();
 
   const {
@@ -53,6 +54,7 @@ export default function WalletPage() {
     error: blobError,
     hasMore: hasMoreBlobs,
     loadMore: loadMoreBlobs,
+    refresh: refreshBlobs,
   } = useWalletBlobs();
 
   // Convert storage objects to wallet items
@@ -106,6 +108,18 @@ export default function WalletPage() {
   // Handle closing dialog
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
+  };
+
+  // Handle successful listing - refresh storage and clear selections
+  const handleListingSuccess = () => {
+    // Refresh the appropriate tab
+    if (activeTab === "storage") {
+      refreshStorage();
+      setSelectedStorageIds([]);
+    } else {
+      refreshBlobs();
+      setSelectedBlobIds([]);
+    }
   };
 
   return (
@@ -170,6 +184,7 @@ export default function WalletPage() {
           onClose={handleCloseDialog}
           selectedItems={selectedItems}
           itemType={activeTab}
+          onSuccess={handleListingSuccess}
         />
       </DashboardLayout>
     </AppShell>

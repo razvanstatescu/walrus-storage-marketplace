@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWalrusStorageCost } from "@/hooks/useWalrusStorageCost";
+import { useStorageListing } from "@/hooks/useStorageListing";
+import { toast } from "@/hooks/use-toast";
 import {
   calculateTotalPrice,
   calculateTotalUnits,
@@ -28,6 +30,7 @@ interface ListStorageDialogProps {
   onClose: () => void;
   selectedItems: WalrusStorage[] | WalrusBlob[];
   itemType: ItemType;
+  onSuccess?: () => void;
 }
 
 export function ListStorageDialog({
@@ -35,10 +38,12 @@ export function ListStorageDialog({
   onClose,
   selectedItems,
   itemType,
+  onSuccess,
 }: ListStorageDialogProps) {
   const [pricePerMiBPerEpoch, setPricePerMiBPerEpoch] = useState<string>("");
   const { calculateCost, result: systemCostResult, isLoading: isLoadingSystemCost } = useWalrusStorageCost();
-  console.log('systemCostResult', systemCostResult);
+  const { listStorage, isListing } = useStorageListing();
+
   // Calculate system price on mount
   useEffect(() => {
     if (isOpen) {
@@ -176,19 +181,19 @@ export function ListStorageDialog({
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span>Total Storage:</span>
-                <span className="font-bold">{totalUnits} MiB</span>
+                <span>{totalUnits} MiB</span>
               </div>
 
               {totalUserPrice > 0 && (
                 <>
                   <div className="flex justify-between text-lg">
                     <span className="font-bold">Total Asking Price:</span>
-                    <span className="font-bold text-[#97f0e5]">
+                    <span className="font-bold">
                       {formatPrice(totalUserPrice)} WAL
                     </span>
                   </div>
                   {priceDifferencePercent !== null && (
-                    <div className="text-xs text-gray-600 text-right">
+                    <div className="text-xs text-gray-600 text-right -mt-1">
                       {priceDifferencePercent > 0 ? (
                         <span className="text-orange-600">
                           {priceDifferencePercent.toFixed(1)}% above system price
@@ -237,20 +242,39 @@ export function ListStorageDialog({
             Cancel
           </Button>
           <Button
-            onClick={() => {
-              // TODO: Implement listing transaction
-              console.log('List for sale:', {
-                itemType,
-                selectedItems,
-                pricePerMiBPerEpoch: parseFloat(pricePerMiBPerEpoch),
-                totalUserPrice,
-              });
-              onClose();
+            onClick={async () => {
+              try {
+                const price = parseFloat(pricePerMiBPerEpoch);
+
+                await listStorage({
+                  items: selectedItems,
+                  itemType,
+                  pricePerMiBPerEpoch: price,
+                });
+
+                toast({
+                  title: "Success!",
+                  description: `Successfully listed ${selectedItems.length} ${itemType === 'storage' ? 'storage unit' : 'blob'}${selectedItems.length !== 1 ? 's' : ''} for sale`,
+                });
+
+                // Call onSuccess callback to refresh the storage list
+                onSuccess?.();
+
+                // Close the dialog
+                onClose();
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Failed to list storage';
+                toast({
+                  title: "Error",
+                  description: errorMessage,
+                  variant: "destructive",
+                });
+              }
             }}
-            disabled={!pricePerMiBPerEpoch || parseFloat(pricePerMiBPerEpoch) <= 0}
-            className="rounded-xl border-2 border-[#97f0e5] bg-[#97f0e5]/50 font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] cursor-pointer hover:bg-[#97f0e5]/30 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-black"
+            disabled={!pricePerMiBPerEpoch || parseFloat(pricePerMiBPerEpoch) <= 0 || isListing}
+            className="rounded-xl border-2 border-[#97f0e5] bg-[#97f0e5]/50 font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] cursor-pointer hover:bg-[#97f0e5]/30 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-black disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            List for Sale
+            {isListing ? 'Listing...' : 'List for Sale'}
           </Button>
         </DialogFooter>
       </DialogContent>
