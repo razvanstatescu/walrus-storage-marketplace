@@ -87,6 +87,52 @@ export function useWalrusStorageCost() {
   );
 
   /**
+   * Calculate storage costs for multiple items in batch
+   * Returns individual costs per item for accurate pricing
+   *
+   * @param items - Array of items with size and epoch information
+   * @returns Promise resolving to array of costs matching input items
+   */
+  const calculateBatchCosts = useCallback(
+    async (
+      items: Array<{ sizeBytes: number; epochs: number }>
+    ): Promise<StorageCostResult[]> => {
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+      try {
+        const results = await Promise.all(
+          items.map((item) =>
+            calculateStorageCost(suiClient, {
+              size: item.sizeBytes,
+              epochs: item.epochs,
+            })
+          )
+        );
+
+        setState({
+          result: results[0] || null,
+          isLoading: false,
+          error: null,
+        });
+
+        return results;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+
+        setState({
+          result: null,
+          isLoading: false,
+          error: errorMessage,
+        });
+
+        throw error;
+      }
+    },
+    [suiClient]
+  );
+
+  /**
    * Reset the state to initial values
    */
   const reset = useCallback(() => {
@@ -99,6 +145,7 @@ export function useWalrusStorageCost() {
 
   return {
     calculateCost,
+    calculateBatchCosts,
     reset,
     ...state,
   };
