@@ -24,6 +24,8 @@ export function useStorageListing() {
 
   const packageId = useNetworkVariable("packageId");
   const marketplaceConfigId = useNetworkVariable("marketplaceConfigId");
+  const walrusPackageId = useNetworkVariable("walrusPackageId");
+  const walrusSystemObjectId = useNetworkVariable("walrusSystemObjectId");
 
   const listStorage = async ({ items, itemType, pricePerMiBPerEpoch }: ListStorageParams) => {
     if (!currentAccount) {
@@ -32,6 +34,10 @@ export function useStorageListing() {
 
     if (!packageId || !marketplaceConfigId) {
       throw new Error("Package ID or Marketplace Config ID not configured");
+    }
+
+    if (itemType === 'blobs' && (!walrusPackageId || !walrusSystemObjectId)) {
+      throw new Error("Walrus Package ID or System Object ID not configured");
     }
 
     if (items.length === 0) {
@@ -63,15 +69,36 @@ export function useStorageListing() {
         // Convert WAL to MIST (1 WAL = 1,000,000,000 MIST)
         const totalPriceInMist = Math.floor(totalPriceInWal * 1_000_000_000);
 
-        // Call list_storage function from the marketplace contract
-        tx.moveCall({
-          target: `${packageId}::marketplace::list_storage`,
-          arguments: [
-            tx.object(marketplaceConfigId), // Shared marketplace object
-            tx.object(item.objectId),        // Storage object to list
-            tx.pure.u64(totalPriceInMist),   // Total price in MIST
-          ],
-        });
+        if (itemType === 'blobs') {
+          // For blobs: first delete the blob to get the storage object
+          const [storage] = tx.moveCall({
+            target: `${walrusPackageId}::system::delete_blob`,
+            arguments: [
+              tx.object(walrusSystemObjectId), // Walrus system object
+              tx.object(item.objectId),         // Blob to delete
+            ],
+          });
+
+          // Then list the returned storage object
+          tx.moveCall({
+            target: `${packageId}::marketplace::list_storage`,
+            arguments: [
+              tx.object(marketplaceConfigId), // Shared marketplace object
+              storage,                         // Storage object from delete_blob
+              tx.pure.u64(totalPriceInMist),   // Total price in MIST
+            ],
+          });
+        } else {
+          // For storage: directly list the storage object
+          tx.moveCall({
+            target: `${packageId}::marketplace::list_storage`,
+            arguments: [
+              tx.object(marketplaceConfigId), // Shared marketplace object
+              tx.object(item.objectId),        // Storage object to list
+              tx.pure.u64(totalPriceInMist),   // Total price in MIST
+            ],
+          });
+        }
       }
 
       // Sign and execute the transaction

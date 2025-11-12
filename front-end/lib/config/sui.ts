@@ -12,6 +12,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
       marketplaceConfigId: process.env.NEXT_PUBLIC_MARKETPLACE_CONFIG_ID || '',
       storageObjectType: process.env.NEXT_PUBLIC_STORAGE_OBJECT_TYPE || 'walrus::storage_resource::Storage',
       blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
+      walrusPackageId: process.env.NEXT_PUBLIC_WALRUS_PACKAGE_ID || '',
+      walrusSystemObjectId: process.env.NEXT_PUBLIC_WALRUS_SYSTEM_OBJECT_ID || '',
     }
   },
   devnet: {
@@ -21,6 +23,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
       marketplaceConfigId: process.env.NEXT_PUBLIC_MARKETPLACE_CONFIG_ID || '',
       storageObjectType: process.env.NEXT_PUBLIC_STORAGE_OBJECT_TYPE || 'walrus::storage_resource::Storage',
       blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
+      walrusPackageId: process.env.NEXT_PUBLIC_WALRUS_PACKAGE_ID || '',
+      walrusSystemObjectId: process.env.NEXT_PUBLIC_WALRUS_SYSTEM_OBJECT_ID || '',
     }
   },
   testnet: {
@@ -30,6 +34,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
       marketplaceConfigId: process.env.NEXT_PUBLIC_MARKETPLACE_CONFIG_ID || '',
       storageObjectType: process.env.NEXT_PUBLIC_STORAGE_OBJECT_TYPE || 'walrus::storage_resource::Storage',
       blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
+      walrusPackageId: process.env.NEXT_PUBLIC_WALRUS_PACKAGE_ID || '',
+      walrusSystemObjectId: process.env.NEXT_PUBLIC_WALRUS_SYSTEM_OBJECT_ID || '',
     }
   },
   mainnet: {
@@ -39,6 +45,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
       marketplaceConfigId: process.env.NEXT_PUBLIC_MARKETPLACE_CONFIG_ID || '',
       storageObjectType: process.env.NEXT_PUBLIC_STORAGE_OBJECT_TYPE || 'walrus::storage_resource::Storage',
       blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
+      walrusPackageId: process.env.NEXT_PUBLIC_WALRUS_PACKAGE_ID || '',
+      walrusSystemObjectId: process.env.NEXT_PUBLIC_WALRUS_SYSTEM_OBJECT_ID || '',
     }
   },
 })

@@ -11,6 +11,7 @@ import {
 import { Menu, LogOut } from "lucide-react";
 import { MobileNav } from "@/components/navigation/MobileNav";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
+import { useWalrusEpoch } from "@/hooks/useWalrusEpoch";
 import { ConnectButton } from "@mysten/dapp-kit";
 
 interface NavbarProps {
@@ -31,6 +32,7 @@ export function Navbar({
   children,
 }: NavbarProps) {
   const { isConnected, address, disconnect } = useWalletConnection();
+  const { epoch, isLoading: isLoadingEpoch } = useWalrusEpoch();
 
   // Helper function to format address
   const formatAddress = (addr: string) => {
@@ -73,6 +75,14 @@ export function Navbar({
           children
         ) : showActions ? (
           <div className="hidden sm:flex items-center gap-3">
+            {/* Current Epoch Display */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-[#97f0e5] bg-white/50 font-bold text-sm">
+              <span className="text-gray-600">Epoch:</span>
+              <span className="font-mono">
+                {isLoadingEpoch ? "..." : epoch ?? "N/A"}
+              </span>
+            </div>
+
             {!isConnected ? (
               <ConnectButton
                 connectText="Connect Account"

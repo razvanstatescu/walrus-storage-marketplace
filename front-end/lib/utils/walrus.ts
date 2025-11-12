@@ -37,3 +37,23 @@ export async function calculateStorageCost(
     throw new Error(`Failed to calculate storage cost: ${errorMessage}`);
   }
 }
+
+/**
+ * Get the current Walrus epoch
+ *
+ * @param suiClient - The Sui client instance
+ * @returns Promise resolving to the current epoch number
+ * @throws Error if fetching the epoch fails
+ */
+export async function getCurrentEpoch(
+  suiClient: ClientWithCoreApi
+): Promise<number> {
+  try {
+    const walrusClient = createWalrusClient(suiClient);
+    const systemState = await walrusClient.walrus.systemState();
+    return systemState.committee.epoch;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching epoch';
+    throw new Error(`Failed to fetch current epoch: ${errorMessage}`);
+  }
+}
