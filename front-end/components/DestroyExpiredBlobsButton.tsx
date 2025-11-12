@@ -2,16 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 
-interface DestroyExpiredButtonProps {
+interface DestroyExpiredBlobsButtonProps {
   count: number;
   onClick: () => void;
 }
 
 /**
- * Fixed button that appears when expired storage items are selected
+ * Fixed button that appears when expired blob items are selected
  * Positioned above the List Storage button on the bottom right
  */
-export function DestroyExpiredButton({ count, onClick }: DestroyExpiredButtonProps) {
+export function DestroyExpiredBlobsButton({ count, onClick }: DestroyExpiredBlobsButtonProps) {
   if (count === 0) return null;
 
   return (

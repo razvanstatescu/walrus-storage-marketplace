@@ -66,12 +66,25 @@ export function ListStorageDialog({
           endEpoch: storage.endEpoch,
         };
       } else {
-        const blob = item as WalrusBlob;
+        // Handle both flattened and nested blob formats
+        const blob = item as any;
+
+        // Check if already flattened (has storageSize at top level)
+        if ('storageSize' in blob && blob.storageSize !== undefined) {
+          return {
+            objectId: blob.objectId,
+            storageSize: blob.storageSize,
+            startEpoch: blob.startEpoch,
+            endEpoch: blob.endEpoch,
+          };
+        }
+
+        // Otherwise expect nested storage property
         return {
           objectId: blob.objectId,
-          storageSize: blob.storage.storageSize,
-          startEpoch: blob.storage.startEpoch,
-          endEpoch: blob.storage.endEpoch,
+          storageSize: blob.storage?.storageSize,
+          startEpoch: blob.storage?.startEpoch,
+          endEpoch: blob.storage?.endEpoch,
         };
       }
     });

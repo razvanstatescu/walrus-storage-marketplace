@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import { AppShell } from "@/components/layouts/AppShell";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { WalletTable } from "@/components/wallet-table";
-import { ListStorageButton } from "@/components/ListStorageButton";
 import { ListStorageDialog } from "@/components/ListStorageDialog";
-import { DestroyExpiredButton } from "@/components/DestroyExpiredButton";
 import { DestroyExpiredDialog } from "@/components/DestroyExpiredDialog";
+import { DestroyExpiredBlobsDialog } from "@/components/DestroyExpiredBlobsDialog";
 import { useWalletStorage } from "@/hooks/useWalletStorage";
 import { useWalletBlobs } from "@/hooks/useWalletBlobs";
 import { useWalrusEpoch } from "@/hooks/useWalrusEpoch";
@@ -42,6 +42,7 @@ export default function WalletPage() {
   const [selectedBlobIds, setSelectedBlobIds] = useState<string[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDestroyDialogOpen, setIsDestroyDialogOpen] = useState(false);
+  const [isDestroyBlobsDialogOpen, setIsDestroyBlobsDialogOpen] = useState(false);
 
   const {
     objects: storageObjects,
@@ -106,21 +107,41 @@ export default function WalletPage() {
     return endEpoch <= currentEpoch;
   };
 
-  // Filter selected items into expired and non-expired (only for storage tab)
-  const { expiredStorageItems, nonExpiredItems } = useMemo(() => {
-    if (activeTab !== "storage") {
-      return { expiredStorageItems: [], nonExpiredItems: selectedItems };
+  // Filter selected items into expired and non-expired
+  const { expiredStorageItems, expiredBlobItems, nonExpiredItems } = useMemo(() => {
+    if (activeTab === "storage") {
+      const expired = selectedItems.filter((item) =>
+        isItemExpired(item.startEpoch, item.endEpoch)
+      );
+      const nonExpired = selectedItems.filter((item) =>
+        !isItemExpired(item.startEpoch, item.endEpoch)
+      );
+      return { expiredStorageItems: expired, expiredBlobItems: [], nonExpiredItems: nonExpired };
+    } else if (activeTab === "blobs") {
+      // For blobs, check expiration using storage.endEpoch
+      const expiredBlobs = blobObjects.filter((obj) =>
+        selectedBlobIds.includes(obj.objectId) &&
+        isItemExpired(obj.storage.startEpoch, obj.storage.endEpoch)
+      );
+      const nonExpiredBlobs = blobObjects.filter((obj) =>
+        selectedBlobIds.includes(obj.objectId) &&
+        !isItemExpired(obj.storage.startEpoch, obj.storage.endEpoch)
+      );
+      // Convert non-expired blobs to storage format for List dialog
+      const nonExpiredBlobStorage = nonExpiredBlobs.map((obj) => ({
+        objectId: obj.objectId,
+        storageSize: obj.storage.storageSize,
+        startEpoch: obj.storage.startEpoch,
+        endEpoch: obj.storage.endEpoch,
+      }));
+      return {
+        expiredStorageItems: [],
+        expiredBlobItems: expiredBlobs,
+        nonExpiredItems: nonExpiredBlobStorage
+      };
     }
-
-    const expired = selectedItems.filter((item) =>
-      isItemExpired(item.startEpoch, item.endEpoch)
-    );
-    const nonExpired = selectedItems.filter((item) =>
-      !isItemExpired(item.startEpoch, item.endEpoch)
-    );
-
-    return { expiredStorageItems: expired, nonExpiredItems: nonExpired };
-  }, [selectedItems, currentEpoch, activeTab]);
+    return { expiredStorageItems: [], expiredBlobItems: [], nonExpiredItems: selectedItems };
+  }, [selectedItems, selectedBlobIds, currentEpoch, activeTab, blobObjects]);
 
   // Get count of selected items for current tab
   const selectedCount =
@@ -129,7 +150,8 @@ export default function WalletPage() {
       : selectedBlobIds.length;
 
   // Count of expired and non-expired selections
-  const expiredCount = expiredStorageItems.length;
+  const expiredStorageCount = expiredStorageItems.length;
+  const expiredBlobsCount = expiredBlobItems.length;
   const nonExpiredCount = nonExpiredItems.length;
 
   // Handle opening dialog
@@ -152,6 +174,16 @@ export default function WalletPage() {
     setIsDestroyDialogOpen(false);
   };
 
+  // Handle opening destroy blobs dialog
+  const handleOpenDestroyBlobsDialog = () => {
+    setIsDestroyBlobsDialogOpen(true);
+  };
+
+  // Handle closing destroy blobs dialog
+  const handleCloseDestroyBlobsDialog = () => {
+    setIsDestroyBlobsDialogOpen(false);
+  };
+
   // Handle successful listing - refresh storage and clear selections
   const handleListingSuccess = () => {
     // Refresh the appropriate tab
@@ -168,6 +200,12 @@ export default function WalletPage() {
   const handleDestroySuccess = () => {
     refreshStorage();
     setSelectedStorageIds([]);
+  };
+
+  // Handle successful blob destroy - refresh blobs and clear selections
+  const handleDestroyBlobsSuccess = () => {
+    refreshBlobs();
+    setSelectedBlobIds([]);
   };
 
   return (
@@ -227,16 +265,41 @@ export default function WalletPage() {
           </Tabs>
         </div>
 
-        {/* Fixed Action Buttons */}
-        {/* Show Destroy button only on storage tab when expired items are selected */}
-        {activeTab === "storage" && expiredCount > 0 && (
-          <DestroyExpiredButton count={expiredCount} onClick={handleOpenDestroyDialog} />
-        )}
+        {/* Fixed Action Buttons - Side by Side */}
+        <div className="fixed bottom-4 right-4 z-50 md:bottom-6 md:right-6 flex flex-row gap-3">
+          {/* Show Destroy button only on storage tab when expired storage items are selected */}
+          {activeTab === "storage" && expiredStorageCount > 0 && (
+            <Button
+              onClick={handleOpenDestroyDialog}
+              variant="outline"
+              className="rounded-xl border-2 border-red-500 font-bold shadow-[4px_4px_0px_0px_rgba(239,68,68,1)] cursor-pointer hover:bg-red-500/10 hover:text-red-600 hover:shadow-[2px_2px_0px_0px_rgba(239,68,68,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all px-6 py-6 text-red-600"
+            >
+              Destroy Expired ({expiredStorageCount})
+            </Button>
+          )}
 
-        {/* Show List button when non-expired items are selected */}
-        {nonExpiredCount > 0 && (
-          <ListStorageButton count={nonExpiredCount} onClick={handleOpenDialog} />
-        )}
+          {/* Show Destroy button only on blobs tab when expired blob items are selected */}
+          {activeTab === "blobs" && expiredBlobsCount > 0 && (
+            <Button
+              onClick={handleOpenDestroyBlobsDialog}
+              variant="outline"
+              className="rounded-xl border-2 border-red-500 font-bold shadow-[4px_4px_0px_0px_rgba(239,68,68,1)] cursor-pointer hover:bg-red-500/10 hover:text-red-600 hover:shadow-[2px_2px_0px_0px_rgba(239,68,68,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all px-6 py-6 text-red-600"
+            >
+              Destroy Expired ({expiredBlobsCount})
+            </Button>
+          )}
+
+          {/* Show List button when non-expired items are selected */}
+          {nonExpiredCount > 0 && (
+            <Button
+              onClick={handleOpenDialog}
+              variant="outline"
+              className="rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all px-6 py-6"
+            >
+              List Storage ({nonExpiredCount})
+            </Button>
+          )}
+        </div>
 
         {/* List Storage Dialog */}
         <ListStorageDialog
@@ -247,12 +310,20 @@ export default function WalletPage() {
           onSuccess={handleListingSuccess}
         />
 
-        {/* Destroy Expired Dialog */}
+        {/* Destroy Expired Storage Dialog */}
         <DestroyExpiredDialog
           isOpen={isDestroyDialogOpen}
           onClose={handleCloseDestroyDialog}
           selectedItems={expiredStorageItems}
           onSuccess={handleDestroySuccess}
+        />
+
+        {/* Destroy Expired Blobs Dialog */}
+        <DestroyExpiredBlobsDialog
+          isOpen={isDestroyBlobsDialogOpen}
+          onClose={handleCloseDestroyBlobsDialog}
+          selectedItems={expiredBlobItems}
+          onSuccess={handleDestroyBlobsSuccess}
         />
       </DashboardLayout>
     </AppShell>

@@ -1,17 +1,13 @@
 module contracts::marketplace;
 
-// Sui framework imports
-use sui::table::{Self, Table};
-use sui::coin::{Self, Coin};
-use sui::balance::{Self, Balance};
-use sui::event;
 use std::string::{Self, String};
-
-// Walrus imports
-use walrus::storage_resource::{Self as storage, Storage};
-
-// WAL coin import
+use sui::balance::{Self, Balance};
+use sui::coin::{Self, Coin};
+use sui::event;
+use sui::table::{Self, Table};
 use wal::wal::WAL;
+use walrus::storage_resource::{Self as storage, Storage};
+use walrus::system::System;
 
 // ====== Constants ======
 
@@ -46,6 +42,9 @@ const EInvalidFee: u64 = 7;
 
 /// Price calculation overflow
 const EPriceOverflow: u64 = 8;
+
+/// Storage has expired (end_epoch <= current_epoch)
+const EStorageExpired: u64 = 9;
 
 // ====== Data Structures ======
 
@@ -185,7 +184,8 @@ public fun calculate_total_price(
     assert!(duration > 0, EInvalidDuration);
 
     // Calculate: (price_per_size_per_epoch * size * duration) / PRECISION_SCALE
-    let result = (price_per_size_per_epoch as u128) * (size as u128) * (duration as u128)
+    let result =
+        (price_per_size_per_epoch as u128) * (size as u128) * (duration as u128)
                  / (PRECISION_SCALE as u128);
 
     assert!(result <= (0xFFFFFFFFFFFFFFFF as u128), EPriceOverflow);
@@ -201,6 +201,7 @@ fun calculate_fee(amount: u64, fee_bps: u64): u64 {
 
 /// List storage for sale
 public fun list_storage(
+    walrus_system: &System,
     marketplace: &mut Marketplace,
     storage: Storage,
     total_price: u64,
@@ -213,6 +214,11 @@ public fun list_storage(
     let size = storage::size(&storage);
     let start_epoch = storage::start_epoch(&storage);
     let end_epoch = storage::end_epoch(&storage);
+
+    let current_epoch = walrus_system.epoch();
+
+    // Ensure storage is not expired
+    assert!(end_epoch > current_epoch, EStorageExpired);
 
     // Calculate price per size per epoch
     let price_per_size_per_epoch = calculate_price_per_size_per_epoch_scaled(
@@ -257,8 +263,10 @@ public fun buy_full_storage(
     assert!(table::contains(&marketplace.listings, storage_id), EStorageNotFound);
 
     // Remove listing
-    let ListedStorage { storage, seller, price_per_size_per_epoch } =
-        table::remove(&mut marketplace.listings, storage_id);
+    let ListedStorage { storage, seller, price_per_size_per_epoch } = table::remove(
+        &mut marketplace.listings,
+        storage_id,
+    );
 
     // Get storage parameters
     let size = storage::size(&storage);
@@ -337,7 +345,10 @@ public fun buy_partial_storage_epoch(
     let storage_end = storage::end_epoch(&listing.storage);
 
     // Validate epoch range
-    assert!(purchase_start_epoch >= storage_start && purchase_end_epoch <= storage_end, EInvalidSplitEpoch);
+    assert!(
+        purchase_start_epoch >= storage_start && purchase_end_epoch <= storage_end,
+        EInvalidSplitEpoch,
+    );
     assert!(purchase_start_epoch < purchase_end_epoch, EInvalidDuration);
 
     // Calculate price for requested epochs
@@ -355,7 +366,11 @@ public fun buy_partial_storage_epoch(
     // Split storage by epoch
     let purchased_storage = if (purchase_start_epoch > storage_start) {
         // Need to split at start
-        let mut after_start = storage::split_by_epoch(&mut listing.storage, purchase_start_epoch, ctx);
+        let mut after_start = storage::split_by_epoch(
+            &mut listing.storage,
+            purchase_start_epoch,
+            ctx,
+        );
 
         if (purchase_end_epoch < storage_end) {
             // Also need to split at end
@@ -374,8 +389,11 @@ public fun buy_partial_storage_epoch(
         // This would be buying the full range - should use buy_full_storage instead
         // But we allow it here for flexibility
         let full_storage_id = object::id(&listing.storage);
-        let ListedStorage { storage: full_storage, seller, price_per_size_per_epoch: _ } =
-            table::remove(&mut marketplace.listings, storage_id);
+        let ListedStorage {
+            storage: full_storage,
+            seller,
+            price_per_size_per_epoch: _,
+        } = table::remove(&mut marketplace.listings, storage_id);
 
         // Calculate and collect marketplace fee
         let fee_amount = calculate_fee(total_price, marketplace.fee_bps);
@@ -544,8 +562,11 @@ public fun delist_storage(
     assert!(table::contains(&marketplace.listings, storage_id), EStorageNotFound);
 
     // Remove listing
-    let ListedStorage { storage, seller: listing_seller, price_per_size_per_epoch: _ } =
-        table::remove(&mut marketplace.listings, storage_id);
+    let ListedStorage {
+        storage,
+        seller: listing_seller,
+        price_per_size_per_epoch: _,
+    } = table::remove(&mut marketplace.listings, storage_id);
 
     // Verify caller is the seller
     assert!(seller == listing_seller, EUnauthorized);
@@ -562,10 +583,7 @@ public fun delist_storage(
 // ====== View Functions ======
 
 /// Get listing details
-public fun get_listing_price(
-    marketplace: &Marketplace,
-    storage_id: ID,
-): (u64, u64, u32, u32, u64) {
+public fun get_listing_price(marketplace: &Marketplace, storage_id: ID): (u64, u64, u32, u32, u64) {
     assert!(table::contains(&marketplace.listings, storage_id), EStorageNotFound);
 
     let listing = table::borrow(&marketplace.listings, storage_id);

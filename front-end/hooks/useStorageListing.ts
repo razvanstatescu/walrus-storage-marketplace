@@ -32,12 +32,12 @@ export function useStorageListing() {
       throw new Error("Wallet not connected");
     }
 
-    if (!packageId || !marketplaceConfigId) {
-      throw new Error("Package ID or Marketplace Config ID not configured");
+    if (!packageId || !marketplaceConfigId || !walrusSystemObjectId) {
+      throw new Error("Package ID, Marketplace Config ID, or Walrus System Object ID not configured");
     }
 
-    if (itemType === 'blobs' && (!walrusPackageId || !walrusSystemObjectId)) {
-      throw new Error("Walrus Package ID or System Object ID not configured");
+    if (itemType === 'blobs' && !walrusPackageId) {
+      throw new Error("Walrus Package ID not configured");
     }
 
     if (items.length === 0) {
@@ -52,9 +52,26 @@ export function useStorageListing() {
       // For each selected item, call list_storage
       for (const item of items) {
         // Extract storage data based on item type
-        const storageData = itemType === 'storage'
-          ? (item as WalrusStorage)
-          : (item as WalrusBlob).storage;
+        let storageData: { storageSize: bigint; startEpoch: number; endEpoch: number };
+
+        if (itemType === 'storage') {
+          storageData = item as WalrusStorage;
+        } else {
+          // Handle both flattened and nested blob formats
+          const blob = item as any;
+
+          if ('storageSize' in blob && blob.storageSize !== undefined) {
+            // Flattened format (from wallet page transformation)
+            storageData = {
+              storageSize: blob.storageSize,
+              startEpoch: blob.startEpoch,
+              endEpoch: blob.endEpoch,
+            };
+          } else {
+            // Nested format (full WalrusBlob object)
+            storageData = (blob as WalrusBlob).storage;
+          }
+        }
 
         // Calculate storage units (MiB) using Walrus SDK formula
         const storageSize = Number(storageData.storageSize);
@@ -83,9 +100,10 @@ export function useStorageListing() {
           tx.moveCall({
             target: `${packageId}::marketplace::list_storage`,
             arguments: [
-              tx.object(marketplaceConfigId), // Shared marketplace object
-              storage,                         // Storage object from delete_blob
-              tx.pure.u64(totalPriceInMist),   // Total price in MIST
+              tx.object(walrusSystemObjectId), // Walrus system object
+              tx.object(marketplaceConfigId),  // Shared marketplace object
+              storage,                          // Storage object from delete_blob
+              tx.pure.u64(totalPriceInMist),    // Total price in MIST
             ],
           });
         } else {
@@ -93,9 +111,10 @@ export function useStorageListing() {
           tx.moveCall({
             target: `${packageId}::marketplace::list_storage`,
             arguments: [
-              tx.object(marketplaceConfigId), // Shared marketplace object
-              tx.object(item.objectId),        // Storage object to list
-              tx.pure.u64(totalPriceInMist),   // Total price in MIST
+              tx.object(walrusSystemObjectId), // Walrus system object
+              tx.object(marketplaceConfigId),  // Shared marketplace object
+              tx.object(item.objectId),         // Storage object to list
+              tx.pure.u64(totalPriceInMist),    // Total price in MIST
             ],
           });
         }
