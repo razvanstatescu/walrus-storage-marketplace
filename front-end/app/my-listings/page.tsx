@@ -88,30 +88,11 @@ export default function MyListingsPage() {
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-4xl font-black">My Listings</h1>
-              <p className="text-gray-600 mt-2">
-                Manage your active marketplace listings
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-2">
-              {selectedListingIds.length > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={handleClearSelection}
-                  className="rounded-xl border-2 border-gray-300 font-bold shadow-[4px_4px_0px_0px_rgba(200,200,200,1)] hover:shadow-[2px_2px_0px_0px_rgba(200,200,200,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-                >
-                  Clear Selection
-                </Button>
-              )}
-              <DelistStorageButton
-                selectedStorageIds={selectedListingIds}
-                onSuccess={handleDelistSuccess}
-              />
-            </div>
+          <div>
+            <h1 className="text-4xl font-black">My Listings</h1>
+            <p className="text-gray-600 mt-2">
+              Manage your active marketplace listings
+            </p>
           </div>
 
           {/* Stats */}
@@ -197,6 +178,16 @@ export default function MyListingsPage() {
             />
           )}
         </div>
+
+        {/* Fixed Delist Button */}
+        {selectedListingIds.length > 0 && (
+          <div className="fixed bottom-4 right-4 z-50 md:bottom-6 md:right-6">
+            <DelistStorageButton
+              selectedStorageIds={selectedListingIds}
+              onSuccess={handleDelistSuccess}
+            />
+          </div>
+        )}
       </DashboardLayout>
     </AppShell>
   );
