@@ -91,7 +91,7 @@ export function WalletTable({
                   checked={allSelected}
                   onCheckedChange={toggleAll}
                   aria-label="Select all"
-                  className="border-2 !border-[#97f0e5] data-[state=checked]:!bg-[#97f0e5] data-[state=checked]:!text-black data-[state=indeterminate]:!bg-secondary data-[state=indeterminate]:!border-secondary cursor-pointer"
+                  className="border-2 !border-[#97f0e5] data-[state=checked]:!bg-[#97f0e5] data-[state=checked]:!text-black data-[state=indeterminate]:!bg-[#97f0e5] data-[state=indeterminate]:!border-[#97f0e5] cursor-pointer"
                   ref={(el) => {
                     if (el && someSelected) {
                       el.dataset.state = "indeterminate";
