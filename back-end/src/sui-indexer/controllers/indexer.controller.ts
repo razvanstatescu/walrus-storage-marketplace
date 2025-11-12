@@ -159,4 +159,20 @@ export class IndexerController {
       );
     }
   }
+
+  /**
+   * Get marketplace analytics (aggregated statistics)
+   */
+  @Get('analytics')
+  async getMarketplaceAnalytics() {
+    try {
+      const analytics = await this.dbOps.getMarketplaceAnalytics();
+      return analytics;
+    } catch (error) {
+      throw new HttpException(
+        'Failed to fetch marketplace analytics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

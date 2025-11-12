@@ -255,4 +255,61 @@ export class DatabaseOperationsService {
       orderBy: { blockTime: 'desc' },
     });
   }
+
+  /**
+   * Get marketplace analytics aggregating various statistics
+   */
+  async getMarketplaceAnalytics() {
+    try {
+      // Run all queries in parallel for performance
+      const [
+        activeListingsCount,
+        uniqueStorageIds,
+        activeSizeAndValue,
+        purchasedAggregates,
+      ] = await Promise.all([
+        // Count of currently active listings
+        this.prisma.listedStorage.count(),
+
+        // Get unique storage IDs that have ever been listed
+        this.prisma.storageListedEvent.findMany({
+          distinct: ['storageId'],
+          select: { storageId: true },
+        }),
+
+        // Aggregate current active listings (size and value)
+        this.prisma.listedStorage.aggregate({
+          _sum: {
+            size: true,
+            totalPrice: true,
+          },
+        }),
+
+        // Aggregate all purchases (count, size, and value)
+        this.prisma.storagePurchasedEvent.aggregate({
+          _count: true,
+          _sum: {
+            purchasedSize: true,
+            amountPaid: true,
+          },
+        }),
+      ]);
+
+      // Convert BigInt values to strings for JSON serialization
+      return {
+        totalActiveListings: activeListingsCount,
+        totalUniqueStorageIdsListed: uniqueStorageIds.length,
+        totalPurchases: purchasedAggregates._count,
+        totalSizeListed: activeSizeAndValue._sum.size?.toString() || '0',
+        totalValueListed: activeSizeAndValue._sum.totalPrice?.toString() || '0',
+        totalSizePurchased:
+          purchasedAggregates._sum.purchasedSize?.toString() || '0',
+        totalValuePurchased:
+          purchasedAggregates._sum.amountPaid?.toString() || '0',
+      };
+    } catch (error) {
+      this.logger.error('Error fetching marketplace analytics', error);
+      throw error;
+    }
+  }
 }
