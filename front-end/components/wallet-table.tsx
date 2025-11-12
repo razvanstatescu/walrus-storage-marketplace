@@ -91,7 +91,7 @@ export function WalletTable({
                   checked={allSelected}
                   onCheckedChange={toggleAll}
                   aria-label="Select all"
-                  className="border-2 border-[#97f0e5] data-[state=checked]:bg-[#97f0e5] data-[state=checked]:text-black cursor-pointer"
+                  className="border-2 !border-[#97f0e5] data-[state=checked]:!bg-[#97f0e5] data-[state=checked]:!text-black cursor-pointer"
                   ref={(el) => {
                     if (el && someSelected) {
                       el.dataset.state = "indeterminate";
@@ -141,8 +141,8 @@ export function WalletTable({
                         aria-label={`Select ${item.objectId}`}
                         className={`cursor-pointer ${
                           expired
-                            ? "border-2 border-red-500 data-[state=checked]:bg-red-500 data-[state=checked]:text-white data-[state=checked]:border-red-500"
-                            : "border-2 border-[#97f0e5] data-[state=checked]:bg-[#97f0e5] data-[state=checked]:text-black data-[state=checked]:border-[#97f0e5]"
+                            ? "border-2 !border-red-500 data-[state=checked]:!bg-red-500 data-[state=checked]:!text-white data-[state=checked]:!border-red-500"
+                            : "border-2 !border-[#97f0e5] data-[state=checked]:!bg-[#97f0e5] data-[state=checked]:!text-black data-[state=checked]:!border-[#97f0e5]"
                         }`}
                       />
                     </TableCell>

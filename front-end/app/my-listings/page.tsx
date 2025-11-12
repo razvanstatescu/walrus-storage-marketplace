@@ -181,7 +181,7 @@ export default function MyListingsPage() {
           ) : (
             <WalletTable
               items={listingItems}
-              selectedIds={selectedListingIds}
+              selectedItems={selectedListingIds}
               onSelectionChange={handleSelectionChange}
               currentEpoch={currentEpoch}
             />
