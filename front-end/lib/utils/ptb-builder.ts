@@ -193,12 +193,15 @@ export function buildStoragePurchasePTB(
           throw new Error(`Storage references not found for fuse_amount at index ${flow.operationIndex}`);
         }
 
-        tx.moveCall({
+        const fusedResult = tx.moveCall({
           target: `${contractConfig.walrusPackageId}::storage_resource::fuse_amount`,
           arguments: [firstStorage, secondStorage],
         });
 
-        // First storage is modified in place, second is consumed
+        // Update the first storage reference to point to the fused result
+        storageRefs.set(flow.fuseTargets.first, fusedResult);
+
+        // Second storage is consumed
         storageRefs.delete(flow.fuseTargets.second);
         break;
       }
