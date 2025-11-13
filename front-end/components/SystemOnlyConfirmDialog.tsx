@@ -31,7 +31,7 @@ export function SystemOnlyConfirmDialog({
 }: SystemOnlyConfirmDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Transaction May Fail</DialogTitle>
           <DialogDescription>
@@ -43,7 +43,7 @@ export function SystemOnlyConfirmDialog({
         <div className="space-y-4">
           <div className="bg-red-50 border-2 border-red-500 rounded-xl p-4">
             <p className="text-sm text-red-700 font-semibold mb-1">Dry Run Error:</p>
-            <p className="text-xs text-red-600 font-mono">{errorMessage}</p>
+            <p className="text-xs text-red-600 font-mono break-words whitespace-pre-wrap">{errorMessage}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -60,8 +60,8 @@ export function SystemOnlyConfirmDialog({
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-xs text-blue-800">
+          <div className="bg-[#97f0e5]/20 border-2 border-[#97f0e5] rounded-xl p-3">
+            <p className="text-xs text-gray-800">
               <strong>Recommendation:</strong> System storage is slightly more expensive
               but guaranteed to succeed. The mixed transaction may fail if marketplace
               listings have changed.
@@ -70,10 +70,18 @@ export function SystemOnlyConfirmDialog({
         </div>
 
         <DialogFooter className="flex gap-2 sm:gap-2">
-          <Button variant="outline" onClick={onConfirmMixed} className="flex-1">
+          <Button
+            variant="outline"
+            onClick={onConfirmMixed}
+            className="flex-1 rounded-xl border-2 border-gray-400 font-bold shadow-[4px_4px_0px_0px_rgba(156,163,175,1)] h-12 cursor-pointer hover:bg-gray-100 hover:shadow-[2px_2px_0px_0px_rgba(156,163,175,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+          >
             Try Mixed Anyway
           </Button>
-          <Button onClick={onConfirmSystemOnly} className="flex-1 bg-green-600 hover:bg-green-700">
+          <Button
+            variant="outline"
+            onClick={onConfirmSystemOnly}
+            className="flex-1 rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] h-12 cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+          >
             Use System Storage
           </Button>
         </DialogFooter>
