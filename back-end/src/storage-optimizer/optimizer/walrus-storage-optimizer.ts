@@ -849,13 +849,6 @@ export function generateStorageOperations(
         let currentOperationIndex = result.allocations.length + (result.needsNewReservation ? 1 : 0);
         const groupToOperationIndex = new Map<typeof sortedGroups[0], number>();
 
-        console.log(`[OPTIMIZER] Initial state: ${result.allocations.length} allocations, ${result.needsNewReservation ? '1 reserve_space' : 'no reserve_space'}, starting operation index: ${currentOperationIndex}`);
-        console.log(`[OPTIMIZER] Found ${sortedGroups.length} epoch groups after grouping:`, sortedGroups.map(g => ({
-          epochs: `${g.startEpoch}-${g.endEpoch}`,
-          pieceCount: g.pieces.length,
-          totalSize: g.pieces.reduce((sum, p) => sum + p.size, 0n).toString()
-        })));
-
         for (const group of sortedGroups) {
           if (group.pieces.length > 1) {
             const fuseCount = group.pieces.length - 1;
@@ -874,7 +867,6 @@ export function generateStorageOperations(
             );
             if (firstPieceIndex !== -1) {
               groupToOperationIndex.set(group, firstPieceIndex);
-              console.log(`[OPTIMIZER] Group ${group.startEpoch}-${group.endEpoch} with ${group.pieces.length} pieces → operation ${firstPieceIndex}`);
             }
           } else {
             // Single piece group - find its operation index
@@ -884,13 +876,11 @@ export function generateStorageOperations(
             );
             if (pieceIndex !== -1) {
               groupToOperationIndex.set(group, pieceIndex);
-              console.log(`[OPTIMIZER] Single-piece group ${group.startEpoch}-${group.endEpoch} → operation ${pieceIndex}`);
             } else if (result.needsNewReservation &&
                        group.pieces[0].startEpoch === result.needsNewReservation.startEpoch &&
                        group.pieces[0].endEpoch === result.needsNewReservation.endEpoch) {
               // This is the reserve_space operation
               groupToOperationIndex.set(group, result.allocations.length);
-              console.log(`[OPTIMIZER] Reserve space group ${group.startEpoch}-${group.endEpoch} → operation ${result.allocations.length}`);
             }
           }
         }
@@ -965,9 +955,6 @@ export function generateStorageOperations(
               }
             }
 
-            console.log(`[OPTIMIZER] Initial segmentToOperation map:`, Array.from(segmentToOperation.entries()).map(([key, opIndices]) => `${key}→[${opIndices.map(i => `op${i}`).join(', ')}]`));
-            console.log(`[OPTIMIZER] Epoch boundaries for split-align-fuse:`, sortedBoundaries);
-
             // Step 3: For each boundary, split groups that span across it
             for (let i = 1; i < sortedBoundaries.length - 1; i++) {
               const splitEpoch = sortedBoundaries[i];
@@ -982,8 +969,6 @@ export function generateStorageOperations(
 
                   // We need to split the FIRST operation in this segment
                   const splitSourceOp = splitSourceOps?.[0] ?? splitTargetOp;
-
-                  console.log(`[OPTIMIZER] Splitting group ${originalKey} at epoch ${splitEpoch}, source operation: ${splitSourceOp}`);
 
                   operations.push({
                     type: 'split_by_epoch',
@@ -1012,7 +997,6 @@ export function generateStorageOperations(
                   }
                   segmentToOperation.get(secondSegmentKey)!.push(currentOperationIndex);
 
-                  console.log(`[OPTIMIZER] After split: ${firstSegmentKey}→[${segmentToOperation.get(firstSegmentKey)!.map(i => `op${i}`).join(', ')}], ${secondSegmentKey}→[${segmentToOperation.get(secondSegmentKey)!.map(i => `op${i}`).join(', ')}]`);
                   currentOperationIndex++;
 
                   // Mark that we've split this group (prevent re-splitting)
@@ -1021,13 +1005,10 @@ export function generateStorageOperations(
               }
             }
 
-            console.log(`[OPTIMIZER] Final segmentToOperation map after splits:`, Array.from(segmentToOperation.entries()).map(([key, opIndices]) => `${key}→[${opIndices.map(i => `op${i}`).join(', ')}]`));
-
             // Step 4: For each segment between boundaries, fuse all pieces covering that segment
             // Track the resulting operation index for each segment after fusing
             const segmentResults = new Map<string, number>();
 
-            console.log(`[OPTIMIZER] Step 4: Fusing pieces within each segment`);
             for (let i = 0; i < sortedBoundaries.length - 1; i++) {
               const segmentStart = sortedBoundaries[i];
               const segmentEnd = sortedBoundaries[i + 1];
@@ -1036,14 +1017,11 @@ export function generateStorageOperations(
               // Find all pieces that cover this exact segment
               const piecesInSegment: number[] = segmentToOperation.get(segmentKey) || [];
 
-              console.log(`[OPTIMIZER] Segment ${segmentKey}: found ${piecesInSegment.length} pieces → [${piecesInSegment.map(idx => `op${idx}`).join(', ')}]`);
-
               // Fuse all pieces in this segment
               if (piecesInSegment.length > 1) {
                 // Fuse iteratively: 0+1, then result+2, then result+3, etc.
                 let currentResult = piecesInSegment[0];
                 for (let j = 1; j < piecesInSegment.length; j++) {
-                  console.log(`[OPTIMIZER] → fuse_amount(op${currentResult}, op${piecesInSegment[j]}) with EXPLICIT targets`);
                   operations.push({
                     type: 'fuse_amount',
                     fuseFirst: currentResult,
@@ -1053,25 +1031,20 @@ export function generateStorageOperations(
                   // After fusing, result stays at currentResult (first is modified in place)
                 }
                 segmentResults.set(segmentKey, currentResult);
-                console.log(`[OPTIMIZER] Segment ${segmentKey} result stored at op${currentResult}`);
               } else if (piecesInSegment.length === 1) {
                 // Only one piece for this segment
                 segmentResults.set(segmentKey, piecesInSegment[0]);
-                console.log(`[OPTIMIZER] Segment ${segmentKey} has single piece at op${piecesInSegment[0]}`);
               }
             }
 
             // Step 5: Fuse adjacent segments together
-            console.log(`[OPTIMIZER] Step 5: Fusing adjacent segments`);
             if (sortedBoundaries.length > 2) {
               let currentSegmentResult = segmentResults.get(`${sortedBoundaries[0]}-${sortedBoundaries[1]}`);
-              console.log(`[OPTIMIZER] Starting with segment ${sortedBoundaries[0]}-${sortedBoundaries[1]} at op${currentSegmentResult}`);
               for (let i = 0; i < sortedBoundaries.length - 2; i++) {
                 const nextSegmentKey = `${sortedBoundaries[i + 1]}-${sortedBoundaries[i + 2]}`;
                 const nextSegmentResult = segmentResults.get(nextSegmentKey);
 
                 if (currentSegmentResult !== undefined && nextSegmentResult !== undefined) {
-                  console.log(`[OPTIMIZER] → fuse_period(op${currentSegmentResult}, op${nextSegmentResult}) with EXPLICIT targets`);
                   operations.push({
                     type: 'fuse_period',
                     fuseFirst: currentSegmentResult,
@@ -1114,16 +1087,6 @@ export function generateStorageOperations(
       }
     }
   }
-
-  console.log(`[OPTIMIZER] Final operations array (${operations.length} total):`, operations.map((op, idx) => ({
-    index: idx,
-    type: op.type,
-    fuseFirst: op.fuseFirst,
-    fuseSecond: op.fuseSecond,
-    splitEpoch: op.splitEpoch,
-    splitTargetOperation: op.splitTargetOperation,
-    description: op.description
-  })));
 
   return operations;
 }
