@@ -149,8 +149,14 @@ export class StorageOptimizerService {
           );
 
           if (allocation) {
+            // For buy_full_storage, use the full storage object's total price
+            // For partial purchases, use the pro-rated seller payment
+            const paymentAmount = op.type === 'buy_full_storage'
+              ? allocation.storageObject.price.toString()
+              : allocation.sellerPayment.toString();
+
             // Add payment amount to the array
-            paymentAmounts.push(allocation.sellerPayment.toString());
+            paymentAmounts.push(paymentAmount);
 
             const storageRef = `storage_${storageRefCounter++}`;
             storageProducers.set(i, storageRef);
