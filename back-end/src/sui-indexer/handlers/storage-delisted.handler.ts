@@ -31,7 +31,9 @@ export class StorageDelistedHandler {
         seller: parsedContent.seller,
         txDigest: event.id.txDigest,
         eventSeq: event.id.eventSeq,
-        blockTime: event.timestampMs ? new Date(Number(event.timestampMs)) : undefined,
+        blockTime: event.timestampMs
+          ? new Date(Number(event.timestampMs))
+          : undefined,
       };
 
       // Process the event

@@ -68,7 +68,10 @@ export class DatabaseOperationsService {
 
       this.logger.debug(`✅ Processed StorageListed: ${data.storageId}`);
     } catch (error) {
-      this.logger.error(`Error processing StorageListed: ${data.storageId}`, error);
+      this.logger.error(
+        `Error processing StorageListed: ${data.storageId}`,
+        error,
+      );
       throw error;
     }
   }
@@ -81,7 +84,9 @@ export class DatabaseOperationsService {
    *   - "partial_size": updates size and total_price
    * - Inserts into storage_purchased_history (append-only)
    */
-  async processStoragePurchased(data: StoragePurchasedInsertData): Promise<void> {
+  async processStoragePurchased(
+    data: StoragePurchasedInsertData,
+  ): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx) => {
         // Insert into history table first
@@ -116,9 +121,14 @@ export class DatabaseOperationsService {
 
           if (listing) {
             // Pro-rate based on remaining epochs
-            const originalEpochs = BigInt(listing.endEpoch - listing.startEpoch);
-            const remainingEpochs = BigInt(listing.endEpoch - data.purchasedEndEpoch);
-            const newTotalPrice = (listing.totalPrice * remainingEpochs) / originalEpochs;
+            const originalEpochs = BigInt(
+              listing.endEpoch - listing.startEpoch,
+            );
+            const remainingEpochs = BigInt(
+              listing.endEpoch - data.purchasedEndEpoch,
+            );
+            const newTotalPrice =
+              (listing.totalPrice * remainingEpochs) / originalEpochs;
 
             await tx.listedStorage.update({
               where: { storageId: data.storageId },
@@ -130,7 +140,9 @@ export class DatabaseOperationsService {
                 lastEventSeq: data.eventSeq,
               },
             });
-            this.logger.debug(`Updated partial_epoch purchase: ${data.storageId}`);
+            this.logger.debug(
+              `Updated partial_epoch purchase: ${data.storageId}`,
+            );
           }
         } else if (data.purchaseType === 'partial_size') {
           // Partial size purchase - update size and pro-rate price
@@ -153,14 +165,21 @@ export class DatabaseOperationsService {
                 lastEventSeq: data.eventSeq,
               },
             });
-            this.logger.debug(`Updated partial_size purchase: ${data.storageId}`);
+            this.logger.debug(
+              `Updated partial_size purchase: ${data.storageId}`,
+            );
           }
         }
       });
 
-      this.logger.debug(`✅ Processed StoragePurchased: ${data.storageId} (${data.purchaseType})`);
+      this.logger.debug(
+        `✅ Processed StoragePurchased: ${data.storageId} (${data.purchaseType})`,
+      );
     } catch (error) {
-      this.logger.error(`Error processing StoragePurchased: ${data.storageId}`, error);
+      this.logger.error(
+        `Error processing StoragePurchased: ${data.storageId}`,
+        error,
+      );
       throw error;
     }
   }
@@ -192,7 +211,10 @@ export class DatabaseOperationsService {
 
       this.logger.debug(`✅ Processed StorageDelisted: ${data.storageId}`);
     } catch (error) {
-      this.logger.error(`Error processing StorageDelisted: ${data.storageId}`, error);
+      this.logger.error(
+        `Error processing StorageDelisted: ${data.storageId}`,
+        error,
+      );
       throw error;
     }
   }

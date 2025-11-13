@@ -51,7 +51,9 @@ export class StorageOptimizerService {
       const listings = await this.databaseOpsService.getAllListedStorage();
       this.logger.log(`Found ${listings.length} marketplace listings`);
       listings.forEach((listing, i) => {
-        this.logger.log(`  [${i}] ${listing.storageId.slice(0, 10)}... size=${listing.size} epochs=${listing.startEpoch}-${listing.endEpoch} price=${listing.totalPrice}`);
+        this.logger.log(
+          `  [${i}] ${listing.storageId.slice(0, 10)}... size=${listing.size} epochs=${listing.startEpoch}-${listing.endEpoch} price=${listing.totalPrice}`,
+        );
       });
 
       // 2. Convert Prisma ListedStorage to StorageObject format
@@ -278,7 +280,12 @@ export class StorageOptimizerService {
               // Group by epoch range and find the group with multiple pieces
               const epochGroups = new Map<
                 string,
-                Array<{ index: number; startEpoch: number; endEpoch: number; size: bigint }>
+                Array<{
+                  index: number;
+                  startEpoch: number;
+                  endEpoch: number;
+                  size: bigint;
+                }>
               >();
 
               for (const storage of activeStorageOps) {
@@ -290,7 +297,14 @@ export class StorageOptimizerService {
               }
 
               // Find a group with at least 2 pieces (for fuse_amount)
-              let targetGroup: Array<{ index: number; startEpoch: number; endEpoch: number; size: bigint }> | undefined;
+              let targetGroup:
+                | Array<{
+                    index: number;
+                    startEpoch: number;
+                    endEpoch: number;
+                    size: bigint;
+                  }>
+                | undefined;
               for (const group of epochGroups.values()) {
                 if (group.length >= 2) {
                   targetGroup = group;
@@ -304,14 +318,18 @@ export class StorageOptimizerService {
                 second = targetGroup[targetGroup.length - 1].index;
               } else {
                 // Fallback: just take last two overall (this shouldn't happen with correct generation)
-                this.logger.warn(`fuse_amount at operation ${i}: no group with 2+ pieces found`);
+                this.logger.warn(
+                  `fuse_amount at operation ${i}: no group with 2+ pieces found`,
+                );
                 first = activeStorageOps[activeStorageOps.length - 2].index;
                 second = activeStorageOps[activeStorageOps.length - 1].index;
               }
             } else {
               // fuse_period: Combine two pieces with ADJACENT epoch ranges and same size
               if (activeStorageOps.length < 2) {
-                throw new Error(`fuse_period at operation ${i}: need at least 2 active storage pieces`);
+                throw new Error(
+                  `fuse_period at operation ${i}: need at least 2 active storage pieces`,
+                );
               }
 
               // Get the last two pieces (sorted by start epoch)
@@ -329,7 +347,9 @@ export class StorageOptimizerService {
                 second = piece1.index;
               } else {
                 // Not adjacent - this shouldn't happen with correct generation
-                this.logger.warn(`fuse_period at operation ${i}: pieces not adjacent (${piece1.startEpoch}-${piece1.endEpoch} and ${piece2.startEpoch}-${piece2.endEpoch})`);
+                this.logger.warn(
+                  `fuse_period at operation ${i}: pieces not adjacent (${piece1.startEpoch}-${piece1.endEpoch} and ${piece2.startEpoch}-${piece2.endEpoch})`,
+                );
                 first = piece1.index;
                 second = piece2.index;
               }

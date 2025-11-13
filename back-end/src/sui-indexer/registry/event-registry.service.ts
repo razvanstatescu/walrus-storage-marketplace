@@ -38,7 +38,9 @@ export class EventRegistryService {
     const fullEventType = `${packageId}::${moduleName}::${eventName}`;
 
     if (this.handlers.has(eventType)) {
-      this.logger.warn(`Handler for ${eventType} already registered, overwriting...`);
+      this.logger.warn(
+        `Handler for ${eventType} already registered, overwriting...`,
+      );
     }
 
     this.handlers.set(eventType, {

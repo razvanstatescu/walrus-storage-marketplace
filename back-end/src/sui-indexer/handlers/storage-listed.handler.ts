@@ -36,7 +36,9 @@ export class StorageListedHandler {
         totalPrice: BigInt(parsedContent.total_price),
         txDigest: event.id.txDigest,
         eventSeq: event.id.eventSeq,
-        blockTime: event.timestampMs ? new Date(Number(event.timestampMs)) : undefined,
+        blockTime: event.timestampMs
+          ? new Date(Number(event.timestampMs))
+          : undefined,
       };
 
       // Process the event

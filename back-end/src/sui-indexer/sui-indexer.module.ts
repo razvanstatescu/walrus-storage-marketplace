@@ -45,10 +45,6 @@ import { IndexerController } from './controllers/indexer.controller';
     EventsGateway,
   ],
   controllers: [IndexerController],
-  exports: [
-    SuiIndexerService,
-    DatabaseOperationsService,
-    EventsGateway,
-  ],
+  exports: [SuiIndexerService, DatabaseOperationsService, EventsGateway],
 })
 export class SuiIndexerModule {}

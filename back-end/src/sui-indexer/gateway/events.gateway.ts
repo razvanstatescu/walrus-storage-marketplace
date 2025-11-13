@@ -54,7 +54,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const eventTypes = data.eventTypes || ['all'];
     this.subscriptions.set(client.id, new Set(eventTypes));
-    this.logger.log(`Client ${client.id} subscribed to: ${eventTypes.join(', ')}`);
+    this.logger.log(
+      `Client ${client.id} subscribed to: ${eventTypes.join(', ')}`,
+    );
     return { success: true, subscriptions: eventTypes };
   }
 
@@ -69,7 +71,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const subs = this.subscriptions.get(client.id);
     if (subs) {
       data.eventTypes.forEach((type) => subs.delete(type));
-      this.logger.log(`Client ${client.id} unsubscribed from: ${data.eventTypes.join(', ')}`);
+      this.logger.log(
+        `Client ${client.id} unsubscribed from: ${data.eventTypes.join(', ')}`,
+      );
     }
     return { success: true };
   }

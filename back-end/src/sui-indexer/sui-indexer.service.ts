@@ -30,7 +30,9 @@ export class SuiIndexerService implements OnModuleInit {
     const config = this.configService.get<SuiIndexerConfig>('suiIndexer');
 
     if (!config?.enabled) {
-      this.logger.log('⏸️  Sui Indexer disabled via config - skipping initialization');
+      this.logger.log(
+        '⏸️  Sui Indexer disabled via config - skipping initialization',
+      );
       return;
     }
 
@@ -136,7 +138,9 @@ export class SuiIndexerService implements OnModuleInit {
         query: {
           MoveEventType: fullEventType,
         },
-        cursor: cursor ? { txDigest: cursor.txDigest, eventSeq: cursor.eventSeq } : undefined,
+        cursor: cursor
+          ? { txDigest: cursor.txDigest, eventSeq: cursor.eventSeq }
+          : undefined,
         limit: config.batchSize,
         order: 'ascending',
       });
@@ -160,7 +164,9 @@ export class SuiIndexerService implements OnModuleInit {
             event.id.txDigest === cursor.txDigest &&
             event.id.eventSeq === cursor.eventSeq
           ) {
-            this.logger.debug(`Skipping already processed event: ${event.id.eventSeq}`);
+            this.logger.debug(
+              `Skipping already processed event: ${event.id.eventSeq}`,
+            );
             continue;
           }
 
@@ -183,7 +189,9 @@ export class SuiIndexerService implements OnModuleInit {
         }
       }
 
-      this.logger.log(`✅ Processed ${response.data.length} ${eventType} events`);
+      this.logger.log(
+        `✅ Processed ${response.data.length} ${eventType} events`,
+      );
     } catch (error) {
       this.logger.error(`Error processing ${eventType}:`, error);
       throw error;

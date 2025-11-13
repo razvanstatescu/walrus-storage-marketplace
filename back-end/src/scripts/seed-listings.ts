@@ -22,25 +22,31 @@ class SeedModule {}
 // - 512KB from system (new reservation)
 const SAMPLE_LISTINGS = [
   {
-    storageId: '0x1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890',
-    seller: '0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab',
+    storageId:
+      '0x1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890',
+    seller:
+      '0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab',
     pricePerSizePerEpoch: 381n, // Calculated: (4000000 * 1e9) / (262144 * 40) = 381.47
     size: 262144n, // 256KB
     startEpoch: 130,
     endEpoch: 170, // 40 epochs
     totalPrice: 4000000n, // 0.004 WAL - super cheap to beat system-only (402M FROST)
-    lastTxDigest: 'ABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZ567890ABCDEF',
+    lastTxDigest:
+      'ABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZ567890ABCDEF',
     lastEventSeq: '1',
   },
   {
-    storageId: '0x1b2c3d4e5f6a7890abcdef1234567890abcdef1234567890abcdef1234567890',
-    seller: '0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab',
+    storageId:
+      '0x1b2c3d4e5f6a7890abcdef1234567890abcdef1234567890abcdef1234567890',
+    seller:
+      '0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab',
     pricePerSizePerEpoch: 572n, // Calculated: (6000000 * 1e9) / (262144 * 40) = 572.20
     size: 262144n, // 256KB
     startEpoch: 130,
     endEpoch: 170, // 40 epochs
     totalPrice: 6000000n, // 0.006 WAL - marketplace 10M + system 390M = 400M < 402M!
-    lastTxDigest: 'ABC124DEF456GHI789JKL012MNO345PQR678STU901VWX234YZ567890ABCDEF',
+    lastTxDigest:
+      'ABC124DEF456GHI789JKL012MNO345PQR678STU901VWX234YZ567890ABCDEF',
     lastEventSeq: '2',
   },
 ];

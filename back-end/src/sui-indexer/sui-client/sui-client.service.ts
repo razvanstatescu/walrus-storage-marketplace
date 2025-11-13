@@ -16,12 +16,16 @@ export class SuiClientService implements OnModuleInit {
   async onModuleInit() {
     try {
       this.client = new SuiClient({
-        url: this.config.rpcUrl || `https://fullnode.${this.config.network}.sui.io:443`,
+        url:
+          this.config.rpcUrl ||
+          `https://fullnode.${this.config.network}.sui.io:443`,
       });
 
       // Test connection
       const chainId = await this.client.getChainIdentifier();
-      this.logger.log(`✅ Connected to Sui ${this.config.network} (Chain ID: ${chainId})`);
+      this.logger.log(
+        `✅ Connected to Sui ${this.config.network} (Chain ID: ${chainId})`,
+      );
       this.logger.log(`📦 Monitoring Package: ${this.config.packageId}`);
     } catch (error) {
       this.logger.error('❌ Failed to connect to Sui RPC:', error);

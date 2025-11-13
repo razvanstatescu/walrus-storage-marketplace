@@ -49,7 +49,10 @@ export class IndexerController {
   async healthCheck() {
     const isHealthy = await this.indexerService.isHealthy();
     if (!isHealthy) {
-      throw new HttpException('Indexer unhealthy', HttpStatus.SERVICE_UNAVAILABLE);
+      throw new HttpException(
+        'Indexer unhealthy',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     }
     return { status: 'ok' };
   }

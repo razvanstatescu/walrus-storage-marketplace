@@ -24,7 +24,9 @@ export class CursorService {
       });
 
       if (!cursor) {
-        this.logger.debug(`No cursor found for ${eventType}, starting from genesis`);
+        this.logger.debug(
+          `No cursor found for ${eventType}, starting from genesis`,
+        );
         return null;
       }
 
