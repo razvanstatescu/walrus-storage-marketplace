@@ -214,12 +214,18 @@ export function buildStoragePurchasePTB(
           throw new Error(`Input storage not found for split_by_size at index ${flow.operationIndex}`);
         }
 
-        const newStorage = tx.moveCall({
+        // split_by_size modifies the input storage in-place to have split_size
+        // and returns the remainder (original_size - split_size)
+        const remainder = tx.moveCall({
           target: `${contractConfig.walrusPackageId}::storage_resource::split_by_size`,
           arguments: [inputStorage, tx.pure.u64(op.splitSize)],
         });
 
-        storageRefs.set(flow.operationIndex, newStorage);
+        // Transfer remainder to sender (user receives it as bonus storage)
+        tx.transferObjects([remainder] as any, senderAddress);
+
+        // The input storage was modified in-place to have split_size, so we track it
+        storageRefs.set(flow.operationIndex, inputStorage);
         break;
       }
 
@@ -233,12 +239,18 @@ export function buildStoragePurchasePTB(
           throw new Error(`Input storage not found for split_by_epoch at index ${flow.operationIndex}`);
         }
 
-        const newStorage = tx.moveCall({
+        // split_by_epoch modifies input to [start, split_epoch) and returns [split_epoch, end)
+        // We typically want the returned piece (later epochs), so we transfer the modified input
+        const returnedStorage = tx.moveCall({
           target: `${contractConfig.walrusPackageId}::storage_resource::split_by_epoch`,
           arguments: [inputStorage, tx.pure.u32(op.splitEpoch)],
         });
 
-        storageRefs.set(flow.operationIndex, newStorage);
+        // Transfer the modified input storage (earlier epochs) to sender as remainder
+        tx.transferObjects([inputStorage] as any, senderAddress);
+
+        // Track the returned storage (later epochs) for subsequent operations
+        storageRefs.set(flow.operationIndex, returnedStorage);
         break;
       }
 

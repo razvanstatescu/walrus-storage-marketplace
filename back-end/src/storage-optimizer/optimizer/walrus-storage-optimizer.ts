@@ -249,11 +249,13 @@ export class WalrusStorageOptimizer {
         storage.storageSize < remainingSize
           ? storage.storageSize
           : remainingSize;
+      // CRITICAL: buy_partial_storage_size charges for the listing's FULL epoch range
+      // The contract has no epoch selection - you get the entire listing's epoch range
       const cost = calculateProRatedPrice(
         storage,
         usedSize,
-        overlap.start,
-        overlap.end,
+        storage.startEpoch,
+        storage.endEpoch,
       );
 
       // Compare cost of using this object vs reserving the SAME SIZE from system
@@ -456,11 +458,12 @@ export class WalrusStorageOptimizer {
             const prev = dp.get(prevKey)!;
             // Convert units back to bytes for cost calculation
             const usedSizeBytes = BigInt(useSizeUnits * UNIT_SIZE);
+            // CRITICAL: buy_partial_storage_size charges for the listing's FULL epoch range
             const cost = calculateProRatedPrice(
               storage,
               usedSizeBytes,
-              overlap.start,
-              overlap.end,
+              storage.startEpoch,
+              storage.endEpoch,
             );
             const totalCost = prev.cost + cost;
 
@@ -623,11 +626,12 @@ export class WalrusStorageOptimizer {
           storage.storageSize < remainingSize
             ? storage.storageSize
             : remainingSize;
+        // CRITICAL: buy_partial_storage_size charges for the listing's FULL epoch range
         const cost = calculateProRatedPrice(
           storage,
           usedSize,
-          request.startEpoch,
-          request.endEpoch,
+          storage.startEpoch,
+          storage.endEpoch,
         );
         greedyAllocations.push({
           storageObject: storage,
@@ -853,42 +857,38 @@ export function generateStorageOperations(
         description: `buy_partial_storage_epoch(${storage.id}, epochs ${allocation.usedStartEpoch}-${allocation.usedEndEpoch}) → ${Number(allocation.usedSize) / (1024 * 1024)}MB`,
       });
     } else {
-      // Case 4: Buy partial size AND partial epoch range
-      // This requires buying full object first, then splitting
+      // Case 4: Buy partial size AND partial epochs
+      // Must use size-first strategy because buy_partial_storage_epoch charges for FULL storage size
+      // Only buy_partial_storage_size properly pro-rates the payment
+
+      const needsEpochSplit =
+        allocation.usedStartEpoch > storage.startEpoch ||
+        allocation.usedEndEpoch < storage.endEpoch;
+
+      // Always split by size first via marketplace (properly pro-rated payment)
       operations.push({
-        type: 'buy_full_storage',
+        type: 'buy_partial_storage_size',
         storageObjectId: storage.id,
-        description: `buy_full_storage(${storage.id}) → to be split`,
+        splitSize: allocation.usedSize,
+        description: `buy_partial_storage_size(${allocation.usedSize} bytes) → marketplace keeps size remainder`,
       });
 
-      // Split by epoch first if needed
-      if (
-        allocation.usedStartEpoch > storage.startEpoch ||
-        allocation.usedEndEpoch < storage.endEpoch
-      ) {
+      if (needsEpochSplit) {
+        // Then manually split epochs on the owned storage (unavoidable remainders)
         if (allocation.usedStartEpoch > storage.startEpoch) {
           operations.push({
             type: 'split_by_epoch',
             splitEpoch: allocation.usedStartEpoch,
-            description: `split_by_epoch(${allocation.usedStartEpoch}) → keep portion from ${allocation.usedStartEpoch} onwards`,
+            description: `split_by_epoch(${allocation.usedStartEpoch}) → remainder transferred to user`,
           });
         }
         if (allocation.usedEndEpoch < storage.endEpoch) {
           operations.push({
             type: 'split_by_epoch',
             splitEpoch: allocation.usedEndEpoch,
-            description: `split_by_epoch(${allocation.usedEndEpoch}) → keep portion before ${allocation.usedEndEpoch}`,
+            description: `split_by_epoch(${allocation.usedEndEpoch}) → remainder transferred to user`,
           });
         }
-      }
-
-      // Then split by size if needed
-      if (allocation.usedSize < storage.storageSize) {
-        operations.push({
-          type: 'split_by_size',
-          splitSize: allocation.usedSize,
-          description: `split_by_size(${allocation.usedSize} bytes) → keep ${Number(allocation.usedSize) / (1024 * 1024)}MB`,
-        });
       }
     }
   }

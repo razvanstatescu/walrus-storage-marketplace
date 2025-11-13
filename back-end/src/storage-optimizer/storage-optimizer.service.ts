@@ -212,6 +212,11 @@ export class StorageOptimizerService {
           const storageRef = `storage_${storageRefCounter++}`;
           storageProducers.set(i, storageRef);
 
+          // Remove the input operation from producers since it's consumed by the split
+          if (inputFromOperation !== undefined) {
+            storageProducers.delete(inputFromOperation);
+          }
+
           executionFlow.push({
             operationIndex: i,
             type: op.type,
@@ -245,36 +250,21 @@ export class StorageOptimizerService {
 
             for (let j = 0; j < i; j++) {
               if (storageProducers.has(j)) {
-                const prevOp = operations[j];
-                let startEpoch: number;
-                let endEpoch: number;
-                let size: bigint;
+                // Calculate the dimensions of this operation's output
+                const dimensions = this.calculateSplitDimensions(
+                  operations,
+                  result,
+                  j,
+                );
 
-                // Determine epoch range and size based on operation type
-                if (prevOp.type === 'reserve_space') {
-                  startEpoch = prevOp.startEpoch;
-                  endEpoch = prevOp.endEpoch;
-                  size = BigInt(prevOp.reserveSize);
-                } else {
-                  // For buy operations, find the allocation
-                  const allocation = result.allocations.find(
-                    (a) => a.storageObject.id === prevOp.storageObjectId,
-                  );
-                  if (allocation) {
-                    startEpoch = allocation.usedStartEpoch;
-                    endEpoch = allocation.usedEndEpoch;
-                    size = allocation.usedSize;
-                  } else {
-                    continue;
-                  }
+                if (dimensions) {
+                  activeStorageOps.push({
+                    index: j,
+                    startEpoch: dimensions.startEpoch,
+                    endEpoch: dimensions.endEpoch,
+                    size: dimensions.size,
+                  });
                 }
-
-                activeStorageOps.push({
-                  index: j,
-                  startEpoch,
-                  endEpoch,
-                  size,
-                });
               }
             }
 
@@ -386,6 +376,136 @@ export class StorageOptimizerService {
       paymentAmounts,
       executionFlow,
     };
+  }
+
+  /**
+   * Find the input operation index for a split operation
+   */
+  private findSplitInputOperation(
+    operations: any[],
+    splitOpIndex: number,
+  ): number | undefined {
+    const splitOp = operations[splitOpIndex];
+
+    // Check if explicit target is provided
+    if (splitOp.splitTargetOperation !== undefined) {
+      return splitOp.splitTargetOperation;
+    }
+
+    // Fallback: Find the last operation before this one
+    // Note: In PTB execution, splits operate on the most recent storage object
+    for (let j = splitOpIndex - 1; j >= 0; j--) {
+      const prevOp = operations[j];
+      // The input is the last buy, reserve, or split operation
+      if (
+        prevOp.type === 'buy_full_storage' ||
+        prevOp.type === 'buy_partial_storage_size' ||
+        prevOp.type === 'buy_partial_storage_epoch' ||
+        prevOp.type === 'reserve_space' ||
+        prevOp.type === 'split_by_size' ||
+        prevOp.type === 'split_by_epoch'
+      ) {
+        return j;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Recursively calculate the dimensions of a split operation's result
+   */
+  private calculateSplitDimensions(
+    operations: any[],
+    result: OptimizationResult,
+    opIndex: number,
+  ): { startEpoch: number; endEpoch: number; size: bigint } | undefined {
+    const op = operations[opIndex];
+
+    // Base cases: operations with known dimensions
+    if (op.type === 'reserve_space') {
+      return {
+        startEpoch: op.startEpoch,
+        endEpoch: op.endEpoch,
+        size: BigInt(op.reserveSize),
+      };
+    }
+
+    if (
+      op.type === 'buy_full_storage' ||
+      op.type === 'buy_partial_storage_size' ||
+      op.type === 'buy_partial_storage_epoch'
+    ) {
+      const allocation = result.allocations.find(
+        (a) => a.storageObject.id === op.storageObjectId,
+      );
+      if (!allocation) {
+        return undefined;
+      }
+
+      // For buy_full_storage, return the full storage object dimensions
+      // For partial purchases, return the used portion dimensions
+      if (op.type === 'buy_full_storage') {
+        return {
+          startEpoch: allocation.storageObject.startEpoch,
+          endEpoch: allocation.storageObject.endEpoch,
+          size: allocation.storageObject.storageSize,
+        };
+      } else {
+        return {
+          startEpoch: allocation.usedStartEpoch,
+          endEpoch: allocation.usedEndEpoch,
+          size: allocation.usedSize,
+        };
+      }
+    }
+
+    // Recursive case: split operations
+    if (op.type === 'split_by_size' || op.type === 'split_by_epoch') {
+      const inputOpIndex = this.findSplitInputOperation(operations, opIndex);
+      if (inputOpIndex === undefined) {
+        return undefined;
+      }
+
+      // Recursively get the input dimensions
+      const inputDimensions = this.calculateSplitDimensions(
+        operations,
+        result,
+        inputOpIndex,
+      );
+      if (!inputDimensions) {
+        return undefined;
+      }
+
+      // Apply the split transformation
+      if (op.type === 'split_by_epoch') {
+        const splitEpoch = op.splitEpoch;
+        if (splitEpoch > inputDimensions.startEpoch) {
+          // Keep portion from splitEpoch onwards
+          return {
+            startEpoch: splitEpoch,
+            endEpoch: inputDimensions.endEpoch,
+            size: inputDimensions.size,
+          };
+        } else {
+          // Keep portion before splitEpoch
+          return {
+            startEpoch: inputDimensions.startEpoch,
+            endEpoch: splitEpoch,
+            size: inputDimensions.size,
+          };
+        }
+      } else {
+        // split_by_size
+        return {
+          startEpoch: inputDimensions.startEpoch,
+          endEpoch: inputDimensions.endEpoch,
+          size: BigInt(op.splitSize),
+        };
+      }
+    }
+
+    return undefined;
   }
 
   /**
