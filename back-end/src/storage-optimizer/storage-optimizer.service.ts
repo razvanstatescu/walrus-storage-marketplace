@@ -55,13 +55,14 @@ export class StorageOptimizerService {
       });
 
       // 2. Convert Prisma ListedStorage to StorageObject format
-      // Note: size and totalPrice are returned as strings from the DB service for JSON serialization
+      // Note: size, totalPrice, and pricePerSizePerEpoch are returned as strings from the DB service for JSON serialization
       const storageObjects: StorageObject[] = listings.map((listing) => ({
         id: listing.storageId,
         startEpoch: listing.startEpoch,
         endEpoch: listing.endEpoch,
         storageSize: BigInt(listing.size),
         price: BigInt(listing.totalPrice),
+        pricePerSizePerEpoch: BigInt(listing.pricePerSizePerEpoch),
         owner: listing.seller,
       }));
       this.logger.log(`Converted to ${storageObjects.length} storage objects`);
@@ -183,13 +184,20 @@ export class StorageOptimizerService {
 
         case 'split_by_size':
         case 'split_by_epoch': {
-          // Split operations take input from the most recent storage-producing operation
-          // Find the last operation that produced storage before this one
+          // Split operations can explicitly specify which operation to split via splitTargetOperation
+          // If not specified, find the last operation that produced storage before this one
           let inputFromOperation: number | undefined;
-          for (let j = i - 1; j >= 0; j--) {
-            if (storageProducers.has(j)) {
-              inputFromOperation = j;
-              break;
+
+          if (op.splitTargetOperation !== undefined) {
+            // Use explicit target from optimizer
+            inputFromOperation = op.splitTargetOperation;
+          } else {
+            // Fallback: Find the last operation that produced storage before this one
+            for (let j = i - 1; j >= 0; j--) {
+              if (storageProducers.has(j)) {
+                inputFromOperation = j;
+                break;
+              }
             }
           }
 
@@ -209,123 +217,136 @@ export class StorageOptimizerService {
         case 'fuse_amount':
         case 'fuse_period': {
           // Fuse operations combine two storage objects
-          // For proper tracking, we need to understand the grouping logic
-
-          // Get all active storage-producing operations with their details
-          const activeStorageOps: Array<{
-            index: number;
-            startEpoch: number;
-            endEpoch: number;
-            size: bigint;
-          }> = [];
-
-          for (let j = 0; j < i; j++) {
-            if (storageProducers.has(j)) {
-              const prevOp = operations[j];
-              let startEpoch: number;
-              let endEpoch: number;
-              let size: bigint;
-
-              // Determine epoch range and size based on operation type
-              if (prevOp.type === 'reserve_space') {
-                startEpoch = prevOp.startEpoch;
-                endEpoch = prevOp.endEpoch;
-                size = BigInt(prevOp.reserveSize);
-              } else {
-                // For buy operations, find the allocation
-                const allocation = result.allocations.find(
-                  (a) => a.storageObject.id === prevOp.storageObjectId,
-                );
-                if (allocation) {
-                  startEpoch = allocation.usedStartEpoch;
-                  endEpoch = allocation.usedEndEpoch;
-                  size = allocation.usedSize;
-                } else {
-                  continue;
-                }
-              }
-
-              activeStorageOps.push({
-                index: j,
-                startEpoch,
-                endEpoch,
-                size,
-              });
-            }
-          }
-
-          // Sort by start epoch
-          activeStorageOps.sort((a, b) => a.startEpoch - b.startEpoch);
-
           let first: number;
           let second: number;
 
-          if (op.type === 'fuse_amount') {
-            // fuse_amount: Combine two pieces with SAME epoch range
-            // Group by epoch range and find the group with multiple pieces
-            const epochGroups = new Map<
-              string,
-              Array<{ index: number; startEpoch: number; endEpoch: number; size: bigint }>
-            >();
+          console.log(`[PTB_META] Processing ${op.type} at operation ${i}`);
+          console.log(`[PTB_META] storageProducers before this operation:`, Array.from(storageProducers.keys()).map(idx => `op${idx}`));
 
-            for (const storage of activeStorageOps) {
-              const key = `${storage.startEpoch}-${storage.endEpoch}`;
-              if (!epochGroups.has(key)) {
-                epochGroups.set(key, []);
-              }
-              epochGroups.get(key)!.push(storage);
-            }
-
-            // Find a group with at least 2 pieces (for fuse_amount)
-            let targetGroup: Array<{ index: number; startEpoch: number; endEpoch: number; size: bigint }> | undefined;
-            for (const group of epochGroups.values()) {
-              if (group.length >= 2) {
-                targetGroup = group;
-                break;
-              }
-            }
-
-            if (targetGroup && targetGroup.length >= 2) {
-              // Take the last two pieces from this group
-              first = targetGroup[targetGroup.length - 2].index;
-              second = targetGroup[targetGroup.length - 1].index;
-            } else {
-              // Fallback: just take last two overall (this shouldn't happen with correct generation)
-              this.logger.warn(`fuse_amount at operation ${i}: no group with 2+ pieces found`);
-              first = activeStorageOps[activeStorageOps.length - 2].index;
-              second = activeStorageOps[activeStorageOps.length - 1].index;
-            }
+          // Check if explicit fuse targets are provided (from split-align-fuse algorithm)
+          if (op.fuseFirst !== undefined && op.fuseSecond !== undefined) {
+            // Use explicit targets from the optimizer
+            first = op.fuseFirst;
+            second = op.fuseSecond;
+            console.log(`[PTB_META] Using EXPLICIT fuse targets: first=op${first}, second=op${second}`);
           } else {
-            // fuse_period: Combine two pieces with ADJACENT epoch ranges and same size
-            // The pieces should be from different epoch groups and adjacent
-            // Ensure they are in the correct order for forward or backward fusion
+            console.log(`[PTB_META] No explicit targets, using FALLBACK inference`);
+            // Fallback: infer targets from active storage operations
+            // Get all active storage-producing operations with their details
+            const activeStorageOps: Array<{
+              index: number;
+              startEpoch: number;
+              endEpoch: number;
+              size: bigint;
+            }> = [];
 
-            if (activeStorageOps.length < 2) {
-              throw new Error(`fuse_period at operation ${i}: need at least 2 active storage pieces`);
+            for (let j = 0; j < i; j++) {
+              if (storageProducers.has(j)) {
+                const prevOp = operations[j];
+                let startEpoch: number;
+                let endEpoch: number;
+                let size: bigint;
+
+                // Determine epoch range and size based on operation type
+                if (prevOp.type === 'reserve_space') {
+                  startEpoch = prevOp.startEpoch;
+                  endEpoch = prevOp.endEpoch;
+                  size = BigInt(prevOp.reserveSize);
+                } else {
+                  // For buy operations, find the allocation
+                  const allocation = result.allocations.find(
+                    (a) => a.storageObject.id === prevOp.storageObjectId,
+                  );
+                  if (allocation) {
+                    startEpoch = allocation.usedStartEpoch;
+                    endEpoch = allocation.usedEndEpoch;
+                    size = allocation.usedSize;
+                  } else {
+                    continue;
+                  }
+                }
+
+                activeStorageOps.push({
+                  index: j,
+                  startEpoch,
+                  endEpoch,
+                  size,
+                });
+              }
             }
 
-            // Get the last two pieces (sorted by start epoch)
-            const piece1 = activeStorageOps[activeStorageOps.length - 2];
-            const piece2 = activeStorageOps[activeStorageOps.length - 1];
+            // Sort by start epoch
+            activeStorageOps.sort((a, b) => a.startEpoch - b.startEpoch);
 
-            // Check adjacency and determine order
-            // Forward fusion: piece1.end == piece2.start (piece1 is first, extends forward)
-            // Backward fusion: piece1.start == piece2.end (piece2 is first, extends backward)
-            if (piece1.endEpoch === piece2.startEpoch) {
-              // Forward fusion: piece1 → piece2
-              first = piece1.index;
-              second = piece2.index;
-            } else if (piece2.endEpoch === piece1.startEpoch) {
-              // Backward fusion: piece2 → piece1
-              first = piece2.index;
-              second = piece1.index;
+            if (op.type === 'fuse_amount') {
+              // fuse_amount: Combine two pieces with SAME epoch range
+              // Group by epoch range and find the group with multiple pieces
+              const epochGroups = new Map<
+                string,
+                Array<{ index: number; startEpoch: number; endEpoch: number; size: bigint }>
+              >();
+
+              for (const storage of activeStorageOps) {
+                const key = `${storage.startEpoch}-${storage.endEpoch}`;
+                if (!epochGroups.has(key)) {
+                  epochGroups.set(key, []);
+                }
+                epochGroups.get(key)!.push(storage);
+              }
+
+              // Find a group with at least 2 pieces (for fuse_amount)
+              let targetGroup: Array<{ index: number; startEpoch: number; endEpoch: number; size: bigint }> | undefined;
+              for (const group of epochGroups.values()) {
+                if (group.length >= 2) {
+                  targetGroup = group;
+                  break;
+                }
+              }
+
+              if (targetGroup && targetGroup.length >= 2) {
+                // Take the last two pieces from this group
+                first = targetGroup[targetGroup.length - 2].index;
+                second = targetGroup[targetGroup.length - 1].index;
+                console.log(`[PTB_META] Inferred fuse_amount targets from group: first=op${first}, second=op${second}`);
+              } else {
+                // Fallback: just take last two overall (this shouldn't happen with correct generation)
+                this.logger.warn(`fuse_amount at operation ${i}: no group with 2+ pieces found`);
+                first = activeStorageOps[activeStorageOps.length - 2].index;
+                second = activeStorageOps[activeStorageOps.length - 1].index;
+                console.log(`[PTB_META] Fallback fuse_amount targets: first=op${first}, second=op${second}`);
+              }
             } else {
-              // Not adjacent - this shouldn't happen with correct generation
-              this.logger.warn(`fuse_period at operation ${i}: pieces not adjacent (${piece1.startEpoch}-${piece1.endEpoch} and ${piece2.startEpoch}-${piece2.endEpoch})`);
-              first = piece1.index;
-              second = piece2.index;
+              // fuse_period: Combine two pieces with ADJACENT epoch ranges and same size
+              if (activeStorageOps.length < 2) {
+                throw new Error(`fuse_period at operation ${i}: need at least 2 active storage pieces`);
+              }
+
+              // Get the last two pieces (sorted by start epoch)
+              const piece1 = activeStorageOps[activeStorageOps.length - 2];
+              const piece2 = activeStorageOps[activeStorageOps.length - 1];
+
+              // Check adjacency and determine order
+              if (piece1.endEpoch === piece2.startEpoch) {
+                // Forward fusion: piece1 → piece2
+                first = piece1.index;
+                second = piece2.index;
+                console.log(`[PTB_META] Inferred fuse_period targets (forward): first=op${first}, second=op${second}`);
+              } else if (piece2.endEpoch === piece1.startEpoch) {
+                // Backward fusion: piece2 → piece1
+                first = piece2.index;
+                second = piece1.index;
+                console.log(`[PTB_META] Inferred fuse_period targets (backward): first=op${first}, second=op${second}`);
+              } else {
+                // Not adjacent - this shouldn't happen with correct generation
+                this.logger.warn(`fuse_period at operation ${i}: pieces not adjacent (${piece1.startEpoch}-${piece1.endEpoch} and ${piece2.startEpoch}-${piece2.endEpoch})`);
+                first = piece1.index;
+                second = piece2.index;
+                console.log(`[PTB_META] Non-adjacent fuse_period targets: first=op${first}, second=op${second}`);
+              }
             }
           }
+
+          console.log(`[PTB_META] Final fuse targets for operation ${i}: first=op${first}, second=op${second}`);
 
           executionFlow.push({
             operationIndex: i,
@@ -337,8 +358,10 @@ export class StorageOptimizerService {
             },
           });
 
+          console.log(`[PTB_META] Removing op${second} from storageProducers (consumed)`);
           // Remove the consumed storage from producers (second is consumed)
           storageProducers.delete(second);
+          console.log(`[PTB_META] storageProducers after this operation:`, Array.from(storageProducers.keys()).map(idx => `op${idx}`));
           break;
         }
 

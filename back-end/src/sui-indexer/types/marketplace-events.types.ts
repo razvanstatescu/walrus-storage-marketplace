@@ -5,6 +5,7 @@
 export interface StorageListedDto {
   storage_id: string;
   seller: string;
+  price_per_size_per_epoch: string;
   size: string;
   start_epoch: number;
   end_epoch: number;
@@ -34,6 +35,7 @@ export interface StorageDelistedDto {
 export interface StorageListedUpsertData {
   storageId: string;
   seller: string;
+  pricePerSizePerEpoch: bigint;
   size: bigint;
   startEpoch: number;
   endEpoch: number;

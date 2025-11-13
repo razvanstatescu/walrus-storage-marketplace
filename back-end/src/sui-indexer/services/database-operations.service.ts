@@ -25,6 +25,7 @@ export class DatabaseOperationsService {
           where: { storageId: data.storageId },
           update: {
             seller: data.seller,
+            pricePerSizePerEpoch: data.pricePerSizePerEpoch,
             size: data.size,
             startEpoch: data.startEpoch,
             endEpoch: data.endEpoch,
@@ -36,6 +37,7 @@ export class DatabaseOperationsService {
           create: {
             storageId: data.storageId,
             seller: data.seller,
+            pricePerSizePerEpoch: data.pricePerSizePerEpoch,
             size: data.size,
             startEpoch: data.startEpoch,
             endEpoch: data.endEpoch,
@@ -52,6 +54,7 @@ export class DatabaseOperationsService {
           data: {
             storageId: data.storageId,
             seller: data.seller,
+            pricePerSizePerEpoch: data.pricePerSizePerEpoch,
             size: data.size,
             startEpoch: data.startEpoch,
             endEpoch: data.endEpoch,
@@ -214,6 +217,7 @@ export class DatabaseOperationsService {
     // Convert BigInt fields to strings for JSON serialization
     return listings.map((listing) => ({
       ...listing,
+      pricePerSizePerEpoch: listing.pricePerSizePerEpoch.toString(),
       size: listing.size.toString(),
       totalPrice: listing.totalPrice.toString(),
     }));

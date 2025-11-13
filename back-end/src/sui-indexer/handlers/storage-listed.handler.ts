@@ -29,6 +29,7 @@ export class StorageListedHandler {
       const data: StorageListedUpsertData = {
         storageId: parsedContent.storage_id,
         seller: parsedContent.seller,
+        pricePerSizePerEpoch: BigInt(parsedContent.price_per_size_per_epoch),
         size: BigInt(parsedContent.size),
         startEpoch: parsedContent.start_epoch,
         endEpoch: parsedContent.end_epoch,

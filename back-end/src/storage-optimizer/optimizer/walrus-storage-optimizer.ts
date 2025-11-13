@@ -4,7 +4,8 @@ export interface StorageObject {
   startEpoch: number;
   endEpoch: number;
   storageSize: bigint; // in bytes
-  price: bigint; // total price for this storage object
+  price: bigint; // total price for this storage object (kept for compatibility, not used in calculation)
+  pricePerSizePerEpoch: bigint; // price per byte per epoch (scaled by 1e9 / PRECISION_SCALE)
   owner?: string; // seller address
 }
 
@@ -43,15 +44,17 @@ function calculateProRatedPrice(
   usedStartEpoch: number,
   usedEndEpoch: number
 ): bigint {
-  const totalEpochs = storage.endEpoch - storage.startEpoch;
-  const usedEpochs = usedEndEpoch - usedStartEpoch;
+  // CRITICAL: Must match contract's calculation exactly
+  // Contract uses: (price_per_size_per_epoch * size * duration) / PRECISION_SCALE
+  // where PRECISION_SCALE = 1_000_000_000 (1e9)
+  const PRECISION_SCALE = 1_000_000_000n;
+  const usedEpochs = BigInt(usedEndEpoch - usedStartEpoch);
 
-  // Avoid precision loss by multiplying first, then dividing once
-  // Formula: (price * usedSize * usedEpochs) / (storageSize * totalEpochs)
-  const numerator = storage.price * usedSize * BigInt(usedEpochs);
-  const denominator = storage.storageSize * BigInt(totalEpochs);
+  // Use pricePerSizePerEpoch directly from storage object (already scaled)
+  // Formula: (pricePerSizePerEpoch * usedSize * usedEpochs) / PRECISION_SCALE
+  const result = (storage.pricePerSizePerEpoch * usedSize * usedEpochs) / PRECISION_SCALE;
 
-  return numerator / denominator;
+  return result;
 }
 
 function overlapsWithRequest(storage: StorageObject, request: StorageRequest): boolean {
@@ -649,6 +652,11 @@ export interface StorageOperation {
 
   // For split operations (when performed on already-owned storage)
   splitEpoch?: number; // for split_by_epoch
+  splitTargetOperation?: number; // Which operation's result to split (operation index)
+
+  // For fuse operations - explicit targets
+  fuseFirst?: number; // First operation index to fuse (modified in place)
+  fuseSecond?: number; // Second operation index to fuse (consumed)
 
   // For reserve_space operations
   reserveSize?: bigint;
@@ -837,6 +845,17 @@ export function generateStorageOperations(
           .sort((a, b) => a.startEpoch - b.startEpoch);
 
         // Step 3a: Fuse within each epoch group using fuse_amount
+        // Track which operation index holds each group's fused result
+        let currentOperationIndex = result.allocations.length + (result.needsNewReservation ? 1 : 0);
+        const groupToOperationIndex = new Map<typeof sortedGroups[0], number>();
+
+        console.log(`[OPTIMIZER] Initial state: ${result.allocations.length} allocations, ${result.needsNewReservation ? '1 reserve_space' : 'no reserve_space'}, starting operation index: ${currentOperationIndex}`);
+        console.log(`[OPTIMIZER] Found ${sortedGroups.length} epoch groups after grouping:`, sortedGroups.map(g => ({
+          epochs: `${g.startEpoch}-${g.endEpoch}`,
+          pieceCount: g.pieces.length,
+          totalSize: g.pieces.reduce((sum, p) => sum + p.size, 0n).toString()
+        })));
+
         for (const group of sortedGroups) {
           if (group.pieces.length > 1) {
             const fuseCount = group.pieces.length - 1;
@@ -845,15 +864,41 @@ export function generateStorageOperations(
                 type: 'fuse_amount',
                 description: `fuse_amount() → combine ${group.pieces.length} pieces within epoch range ${group.startEpoch}-${group.endEpoch}`
               });
+              currentOperationIndex++;
+            }
+            // After fusing, the result is in the first piece's operation index
+            // But we need to find which allocation index that is
+            const firstPieceIndex = result.allocations.findIndex(a =>
+              a.usedStartEpoch === group.pieces[0].startEpoch &&
+              a.usedEndEpoch === group.pieces[0].endEpoch
+            );
+            if (firstPieceIndex !== -1) {
+              groupToOperationIndex.set(group, firstPieceIndex);
+              console.log(`[OPTIMIZER] Group ${group.startEpoch}-${group.endEpoch} with ${group.pieces.length} pieces → operation ${firstPieceIndex}`);
+            }
+          } else {
+            // Single piece group - find its operation index
+            const pieceIndex = result.allocations.findIndex(a =>
+              a.usedStartEpoch === group.pieces[0].startEpoch &&
+              a.usedEndEpoch === group.pieces[0].endEpoch
+            );
+            if (pieceIndex !== -1) {
+              groupToOperationIndex.set(group, pieceIndex);
+              console.log(`[OPTIMIZER] Single-piece group ${group.startEpoch}-${group.endEpoch} → operation ${pieceIndex}`);
+            } else if (result.needsNewReservation &&
+                       group.pieces[0].startEpoch === result.needsNewReservation.startEpoch &&
+                       group.pieces[0].endEpoch === result.needsNewReservation.endEpoch) {
+              // This is the reserve_space operation
+              groupToOperationIndex.set(group, result.allocations.length);
+              console.log(`[OPTIMIZER] Reserve space group ${group.startEpoch}-${group.endEpoch} → operation ${result.allocations.length}`);
             }
           }
         }
 
-        // Step 3b: Try to fuse groups together using fuse_period
-        // Check if groups are adjacent and result in same size after fusing within groups
+        // Step 3b: Fuse remaining groups
+        // After fusing within groups, we have N groups that need to be combined into one final piece
+        // Strategy: Iteratively fuse groups until only one remains
         if (sortedGroups.length > 1) {
-          let canFuseGroups = true;
-
           // Calculate total size for each group after fusing within group
           const groupSizes = sortedGroups.map(group =>
             group.pieces.reduce((sum, p) => sum + p.size, 0n)
@@ -862,16 +907,29 @@ export function generateStorageOperations(
           // Check if all groups have same total size
           const allGroupsSameSize = groupSizes.every(size => size === groupSizes[0]);
 
-          // Check if groups are adjacent
+          // Detect overlap, adjacency, or gaps between groups
+          let groupsOverlap = false;
+          let groupsHaveGaps = false;
+          let allGroupsAdjacent = true;
+
           for (let i = 0; i < sortedGroups.length - 1; i++) {
-            if (sortedGroups[i].endEpoch !== sortedGroups[i + 1].startEpoch) {
-              canFuseGroups = false;
-              break;
+            const currentEnd = sortedGroups[i].endEpoch;
+            const nextStart = sortedGroups[i + 1].startEpoch;
+
+            if (currentEnd > nextStart) {
+              // Current group extends past the start of next group - overlap
+              groupsOverlap = true;
+              allGroupsAdjacent = false;
+            } else if (currentEnd < nextStart) {
+              // There's a gap between groups
+              groupsHaveGaps = true;
+              allGroupsAdjacent = false;
             }
+            // If currentEnd === nextStart, groups are perfectly adjacent (no change needed)
           }
 
-          if (canFuseGroups && allGroupsSameSize) {
-            // Groups are adjacent and have same size - fuse them with fuse_period
+          if (allGroupsAdjacent && allGroupsSameSize) {
+            // Perfect case: Groups are adjacent and have same size - fuse them with fuse_period
             const fuseCount = sortedGroups.length - 1;
             for (let i = 0; i < fuseCount; i++) {
               operations.push({
@@ -879,17 +937,193 @@ export function generateStorageOperations(
                 description: `fuse_period() → merge group ${sortedGroups[i].startEpoch}-${sortedGroups[i].endEpoch} with ${sortedGroups[i + 1].startEpoch}-${sortedGroups[i + 1].endEpoch}`
               });
             }
+          } else if ((allGroupsAdjacent || groupsOverlap) && !allGroupsSameSize) {
+            // Groups are adjacent or overlapping with different sizes
+            // Strategy: Split overlapping groups at boundaries, then fuse segments
+
+            // Step 1: Find all unique epoch boundaries
+            const epochBoundaries = new Set<number>();
+            for (const group of sortedGroups) {
+              epochBoundaries.add(group.startEpoch);
+              epochBoundaries.add(group.endEpoch);
+            }
+            const sortedBoundaries = Array.from(epochBoundaries).sort((a, b) => a - b);
+
+            // Step 2: Track which operation holds which segment after splits
+            // Key: "startEpoch-endEpoch", Value: array of operation indices
+            const segmentToOperation = new Map<string, number[]>();
+
+            // Initialize with the original groups
+            for (const group of sortedGroups) {
+              const opIndex = groupToOperationIndex.get(group);
+              if (opIndex !== undefined) {
+                const key = `${group.startEpoch}-${group.endEpoch}`;
+                if (!segmentToOperation.has(key)) {
+                  segmentToOperation.set(key, []);
+                }
+                segmentToOperation.get(key)!.push(opIndex);
+              }
+            }
+
+            console.log(`[OPTIMIZER] Initial segmentToOperation map:`, Array.from(segmentToOperation.entries()).map(([key, opIndices]) => `${key}→[${opIndices.map(i => `op${i}`).join(', ')}]`));
+            console.log(`[OPTIMIZER] Epoch boundaries for split-align-fuse:`, sortedBoundaries);
+
+            // Step 3: For each boundary, split groups that span across it
+            for (let i = 1; i < sortedBoundaries.length - 1; i++) {
+              const splitEpoch = sortedBoundaries[i];
+
+              // Find groups that need to be split at this boundary
+              for (const group of sortedGroups) {
+                if (group.startEpoch < splitEpoch && group.endEpoch > splitEpoch) {
+                  // This group spans the boundary, split it
+                  const splitTargetOp = groupToOperationIndex.get(group);
+                  const originalKey = `${group.startEpoch}-${group.endEpoch}`;
+                  const splitSourceOps = segmentToOperation.get(originalKey);
+
+                  // We need to split the FIRST operation in this segment
+                  const splitSourceOp = splitSourceOps?.[0] ?? splitTargetOp;
+
+                  console.log(`[OPTIMIZER] Splitting group ${originalKey} at epoch ${splitEpoch}, source operation: ${splitSourceOp}`);
+
+                  operations.push({
+                    type: 'split_by_epoch',
+                    splitEpoch: splitEpoch,
+                    splitTargetOperation: splitSourceOp,
+                    description: `split_by_epoch(${splitEpoch}) → split ${group.startEpoch}-${group.endEpoch} at ${splitEpoch} (from operation ${splitSourceOp})`
+                  });
+
+                  // After split:
+                  // - First piece (startEpoch-splitEpoch) stays at splitSourceOp
+                  // - Second piece (splitEpoch-endEpoch) is at currentOperationIndex
+                  // Remove the original segment from the map
+                  segmentToOperation.delete(originalKey);
+
+                  // Add the split results to their respective segments
+                  const firstSegmentKey = `${group.startEpoch}-${splitEpoch}`;
+                  const secondSegmentKey = `${splitEpoch}-${group.endEpoch}`;
+
+                  if (!segmentToOperation.has(firstSegmentKey)) {
+                    segmentToOperation.set(firstSegmentKey, []);
+                  }
+                  segmentToOperation.get(firstSegmentKey)!.push(splitSourceOp!);
+
+                  if (!segmentToOperation.has(secondSegmentKey)) {
+                    segmentToOperation.set(secondSegmentKey, []);
+                  }
+                  segmentToOperation.get(secondSegmentKey)!.push(currentOperationIndex);
+
+                  console.log(`[OPTIMIZER] After split: ${firstSegmentKey}→[${segmentToOperation.get(firstSegmentKey)!.map(i => `op${i}`).join(', ')}], ${secondSegmentKey}→[${segmentToOperation.get(secondSegmentKey)!.map(i => `op${i}`).join(', ')}]`);
+                  currentOperationIndex++;
+
+                  // Mark that we've split this group (prevent re-splitting)
+                  group.endEpoch = splitEpoch;
+                }
+              }
+            }
+
+            console.log(`[OPTIMIZER] Final segmentToOperation map after splits:`, Array.from(segmentToOperation.entries()).map(([key, opIndices]) => `${key}→[${opIndices.map(i => `op${i}`).join(', ')}]`));
+
+            // Step 4: For each segment between boundaries, fuse all pieces covering that segment
+            // Track the resulting operation index for each segment after fusing
+            const segmentResults = new Map<string, number>();
+
+            console.log(`[OPTIMIZER] Step 4: Fusing pieces within each segment`);
+            for (let i = 0; i < sortedBoundaries.length - 1; i++) {
+              const segmentStart = sortedBoundaries[i];
+              const segmentEnd = sortedBoundaries[i + 1];
+              const segmentKey = `${segmentStart}-${segmentEnd}`;
+
+              // Find all pieces that cover this exact segment
+              const piecesInSegment: number[] = segmentToOperation.get(segmentKey) || [];
+
+              console.log(`[OPTIMIZER] Segment ${segmentKey}: found ${piecesInSegment.length} pieces → [${piecesInSegment.map(idx => `op${idx}`).join(', ')}]`);
+
+              // Fuse all pieces in this segment
+              if (piecesInSegment.length > 1) {
+                // Fuse iteratively: 0+1, then result+2, then result+3, etc.
+                let currentResult = piecesInSegment[0];
+                for (let j = 1; j < piecesInSegment.length; j++) {
+                  console.log(`[OPTIMIZER] → fuse_amount(op${currentResult}, op${piecesInSegment[j]}) with EXPLICIT targets`);
+                  operations.push({
+                    type: 'fuse_amount',
+                    fuseFirst: currentResult,
+                    fuseSecond: piecesInSegment[j],
+                    description: `fuse_amount(op${currentResult}, op${piecesInSegment[j]}) → combine pieces for segment ${segmentStart}-${segmentEnd}`
+                  });
+                  // After fusing, result stays at currentResult (first is modified in place)
+                }
+                segmentResults.set(segmentKey, currentResult);
+                console.log(`[OPTIMIZER] Segment ${segmentKey} result stored at op${currentResult}`);
+              } else if (piecesInSegment.length === 1) {
+                // Only one piece for this segment
+                segmentResults.set(segmentKey, piecesInSegment[0]);
+                console.log(`[OPTIMIZER] Segment ${segmentKey} has single piece at op${piecesInSegment[0]}`);
+              }
+            }
+
+            // Step 5: Fuse adjacent segments together
+            console.log(`[OPTIMIZER] Step 5: Fusing adjacent segments`);
+            if (sortedBoundaries.length > 2) {
+              let currentSegmentResult = segmentResults.get(`${sortedBoundaries[0]}-${sortedBoundaries[1]}`);
+              console.log(`[OPTIMIZER] Starting with segment ${sortedBoundaries[0]}-${sortedBoundaries[1]} at op${currentSegmentResult}`);
+              for (let i = 0; i < sortedBoundaries.length - 2; i++) {
+                const nextSegmentKey = `${sortedBoundaries[i + 1]}-${sortedBoundaries[i + 2]}`;
+                const nextSegmentResult = segmentResults.get(nextSegmentKey);
+
+                if (currentSegmentResult !== undefined && nextSegmentResult !== undefined) {
+                  console.log(`[OPTIMIZER] → fuse_period(op${currentSegmentResult}, op${nextSegmentResult}) with EXPLICIT targets`);
+                  operations.push({
+                    type: 'fuse_period',
+                    fuseFirst: currentSegmentResult,
+                    fuseSecond: nextSegmentResult,
+                    description: `fuse_period(op${currentSegmentResult}, op${nextSegmentResult}) → merge segments ${sortedBoundaries[i]}-${sortedBoundaries[i + 1]} with ${sortedBoundaries[i + 1]}-${sortedBoundaries[i + 2]}`
+                  });
+                  // Result stays at currentSegmentResult
+                }
+              }
+            }
+          } else if (groupsHaveGaps) {
+            // Groups have gaps between them - this means we have non-contiguous storage
+            // This should not happen if the optimizer is working correctly, as we should
+            // reserve space for gaps. Log detailed error information.
+            const gapInfo: string[] = [];
+            for (let i = 0; i < sortedGroups.length - 1; i++) {
+              const gap = sortedGroups[i + 1].startEpoch - sortedGroups[i].endEpoch;
+              if (gap > 0) {
+                gapInfo.push(`gap of ${gap} epochs between ${sortedGroups[i].endEpoch} and ${sortedGroups[i + 1].startEpoch}`);
+              }
+            }
+            throw new Error(
+              `Cannot fuse storage groups with gaps: ${gapInfo.join(', ')}. ` +
+              `This indicates a bug in the optimization algorithm.`
+            );
           } else {
-            // Cannot fuse groups - they are either non-adjacent or have different sizes
-            // This is a limitation of the current approach
-            // For now, we'll leave them as separate pieces
-            // TODO: Implement split operations to align sizes before fusing
-            console.warn(`Cannot fuse ${sortedGroups.length} epoch groups: adjacent=${canFuseGroups && !allGroupsSameSize ? 'yes' : 'no'}, same_size=${allGroupsSameSize}`);
+            // All groups have the same size but overlap - just fuse them
+            // This is an edge case but we can handle it with fuse_amount
+            const totalPieces = sortedGroups.reduce((sum, g) => sum + g.pieces.length, 0);
+            if (totalPieces > 1) {
+              for (let i = 0; i < totalPieces - 1; i++) {
+                operations.push({
+                  type: 'fuse_amount',
+                  description: `fuse_amount() → combine overlapping groups with same size`
+                });
+              }
+            }
           }
         }
       }
     }
   }
+
+  console.log(`[OPTIMIZER] Final operations array (${operations.length} total):`, operations.map((op, idx) => ({
+    index: idx,
+    type: op.type,
+    fuseFirst: op.fuseFirst,
+    fuseSecond: op.fuseSecond,
+    splitEpoch: op.splitEpoch,
+    splitTargetOperation: op.splitTargetOperation,
+    description: op.description
+  })));
 
   return operations;
 }

@@ -24,6 +24,7 @@ const SAMPLE_LISTINGS = [
   {
     storageId: '0x1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890',
     seller: '0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab',
+    pricePerSizePerEpoch: 381n, // Calculated: (4000000 * 1e9) / (262144 * 40) = 381.47
     size: 262144n, // 256KB
     startEpoch: 130,
     endEpoch: 170, // 40 epochs
@@ -34,6 +35,7 @@ const SAMPLE_LISTINGS = [
   {
     storageId: '0x1b2c3d4e5f6a7890abcdef1234567890abcdef1234567890abcdef1234567890',
     seller: '0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab',
+    pricePerSizePerEpoch: 572n, // Calculated: (6000000 * 1e9) / (262144 * 40) = 572.20
     size: 262144n, // 256KB
     startEpoch: 130,
     endEpoch: 170, // 40 epochs

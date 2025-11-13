@@ -30,6 +30,7 @@ model StorageListedEvent {
   id                      String   @id @default(uuid())
   storageId               String                    // Sui storage object ID
   seller                  String                    // Seller address
+  pricePerSizePerEpoch    BigInt                    // Price per byte per epoch (scaled by 1e9)
   size                    BigInt                    // Storage size in bytes
   startEpoch              Int                       // Start epoch (inclusive)
   endEpoch                Int                       // End epoch (exclusive)
@@ -92,6 +93,7 @@ model ListedStorage {
   id                      String   @id @default(uuid())
   storageId               String   @unique           // Sui storage object ID - unique (only one active state)
   seller                  String                     // Seller address
+  pricePerSizePerEpoch    BigInt                     // Price per byte per epoch (scaled by 1e9)
   size                    BigInt                     // Current size available in bytes
   startEpoch              Int                        // Current start epoch (inclusive)
   endEpoch                Int                        // Current end epoch (exclusive)
