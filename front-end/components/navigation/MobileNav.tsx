@@ -25,7 +25,7 @@ const defaultNavItems: NavItem[] = [
 const platforms = [
   { icon: Twitter, label: "X.com", href: "#" },
   { icon: Github, label: "GitHub", href: "https://github.com/razvanstatescu/walrus-storage-marketplace" },
-  { icon: Info, label: "About", href: "#" },
+  { icon: Info, label: "About", href: "https://github.com/razvanstatescu/walrus-storage-marketplace/blob/main/README.md" },
 ];
 
 /**
