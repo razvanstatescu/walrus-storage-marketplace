@@ -6,7 +6,6 @@ import {
   StorageObject,
   StorageRequest,
   OptimizationResult,
-  generateStorageOperations,
 } from './optimizer/walrus-storage-optimizer';
 import {
   OptimizationResultDto,
@@ -50,14 +49,8 @@ export class StorageOptimizerService {
       // 1. Fetch marketplace listings from database
       const listings = await this.databaseOpsService.getAllListedStorage();
       this.logger.log(`Found ${listings.length} marketplace listings`);
-      listings.forEach((listing, i) => {
-        this.logger.log(
-          `  [${i}] ${listing.storageId.slice(0, 10)}... size=${listing.size} epochs=${listing.startEpoch}-${listing.endEpoch} price=${listing.totalPrice}`,
-        );
-      });
 
       // 2. Convert Prisma ListedStorage to StorageObject format
-      // Note: size, totalPrice, and pricePerSizePerEpoch are returned as strings from the DB service for JSON serialization
       const storageObjects: StorageObject[] = listings.map((listing) => ({
         id: listing.storageId,
         startEpoch: listing.startEpoch,
@@ -67,7 +60,6 @@ export class StorageOptimizerService {
         pricePerSizePerEpoch: BigInt(listing.pricePerSizePerEpoch),
         owner: listing.seller,
       }));
-      this.logger.log(`Converted to ${storageObjects.length} storage objects`);
 
       // 3. Create storage cost function using Walrus SDK
       const storageCostFn = async (
@@ -98,13 +90,8 @@ export class StorageOptimizerService {
         `Optimization complete: ${result.allocations.length} allocations, total cost: ${result.totalCost}`,
       );
 
-      // 7. Generate operations
-      const operations = generateStorageOperations(
-        result,
-        startEpoch,
-        endEpoch,
-        size,
-      );
+      // 7. Generate simplified operations
+      const operations = this.generateStorageOperations(result);
 
       // 8. Calculate system-only price for comparison (frontend display)
       const epochs = endEpoch - startEpoch;
@@ -122,7 +109,84 @@ export class StorageOptimizerService {
   }
 
   /**
-   * Generate PTB metadata for frontend transaction construction
+   * SIMPLIFIED: Generate storage operations
+   *
+   * Strategy:
+   * 1. Buy storage pieces (full or partial size)
+   * 2. Reserve from system if needed
+   * 3. Fuse all pieces together if multiple
+   *
+   * Only uses 4 operation types:
+   * - buy_full_storage
+   * - buy_partial_storage_size
+   * - reserve_space
+   * - fuse_amount
+   */
+  private generateStorageOperations(
+    result: OptimizationResult,
+  ): any[] {
+    const operations: any[] = [];
+
+    // Step 1: Buy storage pieces from marketplace
+    for (const allocation of result.allocations) {
+      const storage = allocation.storageObject;
+
+      if (allocation.usedSize === storage.storageSize) {
+        // Buy the full storage object
+        operations.push({
+          type: 'buy_full_storage',
+          storageObjectId: storage.id,
+          description: `Buy full storage (${storage.storageSize} bytes)`,
+        });
+      } else {
+        // Buy partial size (marketplace keeps the remainder)
+        operations.push({
+          type: 'buy_partial_storage_size',
+          storageObjectId: storage.id,
+          splitSize: allocation.usedSize,
+          description: `Buy ${allocation.usedSize} bytes from ${storage.id.slice(0, 10)}...`,
+        });
+      }
+    }
+
+    // Step 2: Reserve new storage from system if needed
+    if (result.needsNewReservation) {
+      operations.push({
+        type: 'reserve_space',
+        reserveSize: result.needsNewReservation.size,
+        startEpoch: result.needsNewReservation.startEpoch,
+        endEpoch: result.needsNewReservation.endEpoch,
+        cost: result.needsNewReservation.cost,
+        description: `Reserve ${result.needsNewReservation.size} bytes from system`,
+      });
+    }
+
+    // Step 3: Fuse all pieces if we have multiple
+    const totalPieces =
+      result.allocations.length + (result.needsNewReservation ? 1 : 0);
+
+    if (totalPieces > 1) {
+      // All pieces have SAME epoch range (by design), so use fuse_amount
+      // Fuse all pieces into the first one
+      for (let i = 1; i < totalPieces; i++) {
+        operations.push({
+          type: 'fuse_amount',
+          description: `Fuse piece ${i} into piece 0`,
+        });
+      }
+    }
+
+    this.logger.log(`Generated ${operations.length} operations`);
+    return operations;
+  }
+
+  /**
+   * SIMPLIFIED: Generate PTB metadata for frontend transaction construction
+   *
+   * Handles only 4 operation types:
+   * - buy_full_storage / buy_partial_storage_size
+   * - reserve_space
+   * - fuse_amount
    */
   private generatePTBMetadata(
     result: OptimizationResult,
@@ -130,245 +194,71 @@ export class StorageOptimizerService {
   ): PTBMetadataDto {
     const paymentAmounts: string[] = [];
     const executionFlow: ExecutionFlowDto[] = [];
-    let storageRefCounter = 0;
     let paymentIndex = 0;
 
-    // Track which operations produce storage objects
-    const storageProducers: Map<number, string> = new Map();
+    // Total number of storage-producing operations
+    const totalPieces =
+      result.allocations.length + (result.needsNewReservation ? 1 : 0);
 
     for (let i = 0; i < operations.length; i++) {
       const op = operations[i];
 
-      switch (op.type) {
-        case 'buy_full_storage':
-        case 'buy_partial_storage_size':
-        case 'buy_partial_storage_epoch': {
-          // Find the allocation that corresponds to this operation
-          const allocation = result.allocations.find(
-            (a) => a.storageObject.id === op.storageObjectId,
-          );
+      if (op.type === 'buy_full_storage' || op.type === 'buy_partial_storage_size') {
+        // Find the allocation that corresponds to this operation
+        const allocation = result.allocations.find(
+          (a) => a.storageObject.id === op.storageObjectId,
+        );
 
-          if (allocation) {
-            // For buy_full_storage, use the full storage object's total price
-            // For partial purchases, use the pro-rated seller payment
-            const paymentAmount = op.type === 'buy_full_storage'
+        if (allocation) {
+          // For buy_full_storage, use the full storage object's total price
+          // For partial purchases, use the pro-rated seller payment
+          const paymentAmount =
+            op.type === 'buy_full_storage'
               ? allocation.storageObject.price.toString()
               : allocation.sellerPayment.toString();
 
-            // Add payment amount to the array
-            paymentAmounts.push(paymentAmount);
-
-            const storageRef = `storage_${storageRefCounter++}`;
-            storageProducers.set(i, storageRef);
-
-            executionFlow.push({
-              operationIndex: i,
-              type: op.type,
-              producesStorage: true,
-              storageRef,
-              paymentIndex: paymentIndex++,
-              sellerAddress: allocation.seller,
-            });
-          }
-          break;
-        }
-
-        case 'reserve_space': {
-          // Add payment amount from the operation's cost
-          paymentAmounts.push(op.cost.toString());
-
-          const storageRef = `storage_${storageRefCounter++}`;
-          storageProducers.set(i, storageRef);
+          paymentAmounts.push(paymentAmount);
 
           executionFlow.push({
             operationIndex: i,
             type: op.type,
             producesStorage: true,
-            storageRef,
+            storageRef: `storage_${i}`,
             paymentIndex: paymentIndex++,
+            sellerAddress: allocation.seller,
           });
-          break;
         }
+      } else if (op.type === 'reserve_space') {
+        // Add payment amount from the operation's cost
+        paymentAmounts.push(op.cost.toString());
 
-        case 'split_by_size':
-        case 'split_by_epoch': {
-          // Split operations can explicitly specify which operation to split via splitTargetOperation
-          // If not specified, find the last operation that produced storage before this one
-          let inputFromOperation: number | undefined;
+        executionFlow.push({
+          operationIndex: i,
+          type: op.type,
+          producesStorage: true,
+          storageRef: `storage_${i}`,
+          paymentIndex: paymentIndex++,
+        });
+      } else if (op.type === 'fuse_amount') {
+        // Fuse operations: always fuse into first piece (storage_0)
+        // The second piece index is: current_operation_index - (total_operations - total_pieces)
+        // This gives us which storage-producing operation created the piece to fuse
 
-          if (op.splitTargetOperation !== undefined) {
-            // Use explicit target from optimizer
-            inputFromOperation = op.splitTargetOperation;
-          } else {
-            // Fallback: Find the last operation that produced storage before this one
-            for (let j = i - 1; j >= 0; j--) {
-              if (storageProducers.has(j)) {
-                inputFromOperation = j;
-                break;
-              }
-            }
-          }
+        // Calculate which piece we're fusing
+        // If we have 3 pieces and 5 total operations (3 buys/reserves + 2 fuses):
+        // - Operation 3 (first fuse): fuses piece 1 into piece 0
+        // - Operation 4 (second fuse): fuses piece 2 into piece 0
+        const fuseIndex = i - totalPieces + 1;
 
-          const storageRef = `storage_${storageRefCounter++}`;
-          storageProducers.set(i, storageRef);
-
-          // Remove the input operation from producers since it's consumed by the split
-          if (inputFromOperation !== undefined) {
-            storageProducers.delete(inputFromOperation);
-          }
-
-          executionFlow.push({
-            operationIndex: i,
-            type: op.type,
-            producesStorage: true,
-            storageRef,
-            inputStorageFromOperation: inputFromOperation,
-          });
-          break;
-        }
-
-        case 'fuse_amount':
-        case 'fuse_period': {
-          // Fuse operations combine two storage objects
-          let first: number;
-          let second: number;
-
-          // Check if explicit fuse targets are provided (from split-align-fuse algorithm)
-          if (op.fuseFirst !== undefined && op.fuseSecond !== undefined) {
-            // Use explicit targets from the optimizer
-            first = op.fuseFirst;
-            second = op.fuseSecond;
-          } else {
-            // Fallback: infer targets from active storage operations
-            // Get all active storage-producing operations with their details
-            const activeStorageOps: Array<{
-              index: number;
-              startEpoch: number;
-              endEpoch: number;
-              size: bigint;
-            }> = [];
-
-            for (let j = 0; j < i; j++) {
-              if (storageProducers.has(j)) {
-                // Calculate the dimensions of this operation's output
-                const dimensions = this.calculateSplitDimensions(
-                  operations,
-                  result,
-                  j,
-                );
-
-                if (dimensions) {
-                  activeStorageOps.push({
-                    index: j,
-                    startEpoch: dimensions.startEpoch,
-                    endEpoch: dimensions.endEpoch,
-                    size: dimensions.size,
-                  });
-                }
-              }
-            }
-
-            // Sort by start epoch
-            activeStorageOps.sort((a, b) => a.startEpoch - b.startEpoch);
-
-            if (op.type === 'fuse_amount') {
-              // fuse_amount: Combine two pieces with SAME epoch range
-              // Group by epoch range and find the group with multiple pieces
-              const epochGroups = new Map<
-                string,
-                Array<{
-                  index: number;
-                  startEpoch: number;
-                  endEpoch: number;
-                  size: bigint;
-                }>
-              >();
-
-              for (const storage of activeStorageOps) {
-                const key = `${storage.startEpoch}-${storage.endEpoch}`;
-                if (!epochGroups.has(key)) {
-                  epochGroups.set(key, []);
-                }
-                epochGroups.get(key)!.push(storage);
-              }
-
-              // Find a group with at least 2 pieces (for fuse_amount)
-              let targetGroup:
-                | Array<{
-                    index: number;
-                    startEpoch: number;
-                    endEpoch: number;
-                    size: bigint;
-                  }>
-                | undefined;
-              for (const group of epochGroups.values()) {
-                if (group.length >= 2) {
-                  targetGroup = group;
-                  break;
-                }
-              }
-
-              if (targetGroup && targetGroup.length >= 2) {
-                // Take the last two pieces from this group
-                first = targetGroup[targetGroup.length - 2].index;
-                second = targetGroup[targetGroup.length - 1].index;
-              } else {
-                // Fallback: just take last two overall (this shouldn't happen with correct generation)
-                this.logger.warn(
-                  `fuse_amount at operation ${i}: no group with 2+ pieces found`,
-                );
-                first = activeStorageOps[activeStorageOps.length - 2].index;
-                second = activeStorageOps[activeStorageOps.length - 1].index;
-              }
-            } else {
-              // fuse_period: Combine two pieces with ADJACENT epoch ranges and same size
-              if (activeStorageOps.length < 2) {
-                throw new Error(
-                  `fuse_period at operation ${i}: need at least 2 active storage pieces`,
-                );
-              }
-
-              // Get the last two pieces (sorted by start epoch)
-              const piece1 = activeStorageOps[activeStorageOps.length - 2];
-              const piece2 = activeStorageOps[activeStorageOps.length - 1];
-
-              // Check adjacency and determine order
-              if (piece1.endEpoch === piece2.startEpoch) {
-                // Forward fusion: piece1 → piece2
-                first = piece1.index;
-                second = piece2.index;
-              } else if (piece2.endEpoch === piece1.startEpoch) {
-                // Backward fusion: piece2 → piece1
-                first = piece2.index;
-                second = piece1.index;
-              } else {
-                // Not adjacent - this shouldn't happen with correct generation
-                this.logger.warn(
-                  `fuse_period at operation ${i}: pieces not adjacent (${piece1.startEpoch}-${piece1.endEpoch} and ${piece2.startEpoch}-${piece2.endEpoch})`,
-                );
-                first = piece1.index;
-                second = piece2.index;
-              }
-            }
-          }
-
-          executionFlow.push({
-            operationIndex: i,
-            type: op.type,
-            producesStorage: false, // Modifies first in-place
-            fuseTargets: {
-              first,
-              second,
-            },
-          });
-
-          // Remove the consumed storage from producers (second is consumed)
-          storageProducers.delete(second);
-          break;
-        }
-
-        default:
-          this.logger.warn(`Unknown operation type: ${op.type}`);
+        executionFlow.push({
+          operationIndex: i,
+          type: op.type,
+          producesStorage: false,
+          fuseTargets: {
+            first: 0, // Always fuse into the first piece
+            second: fuseIndex,
+          },
+        });
       }
     }
 
@@ -376,136 +266,6 @@ export class StorageOptimizerService {
       paymentAmounts,
       executionFlow,
     };
-  }
-
-  /**
-   * Find the input operation index for a split operation
-   */
-  private findSplitInputOperation(
-    operations: any[],
-    splitOpIndex: number,
-  ): number | undefined {
-    const splitOp = operations[splitOpIndex];
-
-    // Check if explicit target is provided
-    if (splitOp.splitTargetOperation !== undefined) {
-      return splitOp.splitTargetOperation;
-    }
-
-    // Fallback: Find the last operation before this one
-    // Note: In PTB execution, splits operate on the most recent storage object
-    for (let j = splitOpIndex - 1; j >= 0; j--) {
-      const prevOp = operations[j];
-      // The input is the last buy, reserve, or split operation
-      if (
-        prevOp.type === 'buy_full_storage' ||
-        prevOp.type === 'buy_partial_storage_size' ||
-        prevOp.type === 'buy_partial_storage_epoch' ||
-        prevOp.type === 'reserve_space' ||
-        prevOp.type === 'split_by_size' ||
-        prevOp.type === 'split_by_epoch'
-      ) {
-        return j;
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Recursively calculate the dimensions of a split operation's result
-   */
-  private calculateSplitDimensions(
-    operations: any[],
-    result: OptimizationResult,
-    opIndex: number,
-  ): { startEpoch: number; endEpoch: number; size: bigint } | undefined {
-    const op = operations[opIndex];
-
-    // Base cases: operations with known dimensions
-    if (op.type === 'reserve_space') {
-      return {
-        startEpoch: op.startEpoch,
-        endEpoch: op.endEpoch,
-        size: BigInt(op.reserveSize),
-      };
-    }
-
-    if (
-      op.type === 'buy_full_storage' ||
-      op.type === 'buy_partial_storage_size' ||
-      op.type === 'buy_partial_storage_epoch'
-    ) {
-      const allocation = result.allocations.find(
-        (a) => a.storageObject.id === op.storageObjectId,
-      );
-      if (!allocation) {
-        return undefined;
-      }
-
-      // For buy_full_storage, return the full storage object dimensions
-      // For partial purchases, return the used portion dimensions
-      if (op.type === 'buy_full_storage') {
-        return {
-          startEpoch: allocation.storageObject.startEpoch,
-          endEpoch: allocation.storageObject.endEpoch,
-          size: allocation.storageObject.storageSize,
-        };
-      } else {
-        return {
-          startEpoch: allocation.usedStartEpoch,
-          endEpoch: allocation.usedEndEpoch,
-          size: allocation.usedSize,
-        };
-      }
-    }
-
-    // Recursive case: split operations
-    if (op.type === 'split_by_size' || op.type === 'split_by_epoch') {
-      const inputOpIndex = this.findSplitInputOperation(operations, opIndex);
-      if (inputOpIndex === undefined) {
-        return undefined;
-      }
-
-      // Recursively get the input dimensions
-      const inputDimensions = this.calculateSplitDimensions(
-        operations,
-        result,
-        inputOpIndex,
-      );
-      if (!inputDimensions) {
-        return undefined;
-      }
-
-      // Apply the split transformation
-      if (op.type === 'split_by_epoch') {
-        const splitEpoch = op.splitEpoch;
-        if (splitEpoch > inputDimensions.startEpoch) {
-          // Keep portion from splitEpoch onwards
-          return {
-            startEpoch: splitEpoch,
-            endEpoch: inputDimensions.endEpoch,
-            size: inputDimensions.size,
-          };
-        } else {
-          // Keep portion before splitEpoch
-          return {
-            startEpoch: inputDimensions.startEpoch,
-            endEpoch: splitEpoch,
-            size: inputDimensions.size,
-          };
-        }
-      } else {
-        // split_by_size
-        return {
-          startEpoch: inputDimensions.startEpoch,
-          endEpoch: inputDimensions.endEpoch,
-          size: BigInt(op.splitSize),
-        };
-      }
-    }
-
-    return undefined;
   }
 
   /**
@@ -521,24 +281,23 @@ export class StorageOptimizerService {
       description: op.description,
       storageObjectId: op.storageObjectId,
       splitSize: op.splitSize?.toString(),
-      splitStartEpoch: op.splitStartEpoch,
-      splitEndEpoch: op.splitEndEpoch,
-      splitEpoch: op.splitEpoch,
       reserveSize: op.reserveSize?.toString(),
       startEpoch: op.startEpoch,
       endEpoch: op.endEpoch,
       cost: op.cost?.toString(),
     }));
 
-    const allocationsDto: AllocationDto[] = result.allocations.map((alloc) => ({
-      storageObjectId: alloc.storageObject.id,
-      usedSize: alloc.usedSize.toString(),
-      usedStartEpoch: alloc.usedStartEpoch,
-      usedEndEpoch: alloc.usedEndEpoch,
-      cost: alloc.cost.toString(),
-      sellerPayment: alloc.sellerPayment.toString(),
-      seller: alloc.seller,
-    }));
+    const allocationsDto: AllocationDto[] = result.allocations.map(
+      (alloc) => ({
+        storageObjectId: alloc.storageObject.id,
+        usedSize: alloc.usedSize.toString(),
+        usedStartEpoch: alloc.usedStartEpoch,
+        usedEndEpoch: alloc.usedEndEpoch,
+        cost: alloc.cost.toString(),
+        sellerPayment: alloc.sellerPayment.toString(),
+        seller: alloc.seller,
+      }),
+    );
 
     const needsNewReservationDto: NewReservationDto | undefined =
       result.needsNewReservation

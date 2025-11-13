@@ -10,7 +10,6 @@ export interface ExecutionFlow {
   storageRef?: string;
   paymentIndex?: number;
   sellerAddress?: string;
-  inputStorageFromOperation?: number;
   fuseTargets?: {
     first: number;
     second: number;
@@ -27,9 +26,6 @@ export interface StorageOperation {
   description: string;
   storageObjectId?: string;
   splitSize?: string;
-  splitStartEpoch?: number;
-  splitEndEpoch?: number;
-  splitEpoch?: number;
   reserveSize?: string;
   startEpoch?: number;
   endEpoch?: number;
@@ -56,13 +52,20 @@ export interface ContractConfig {
 }
 
 /**
- * Build a Programmable Transaction Block for storage purchase
+ * SIMPLIFIED: Build a Programmable Transaction Block for storage purchase
  *
- * This function constructs a complex PTB that:
+ * This function constructs a simple PTB that:
  * 1. Merges all user WAL coins into one
- * 2. Splits payment for all operations in a single call (avoids coin locking)
- * 3. Executes buy/reserve/split/fuse operations in order
- * 4. Transfers final Storage object to sender
+ * 2. Splits payment for all operations in a single call
+ * 3. Executes buy/reserve operations
+ * 4. Fuses all pieces together if multiple
+ * 5. Transfers final Storage object to sender
+ *
+ * Only handles 4 operation types:
+ * - buy_full_storage
+ * - buy_partial_storage_size
+ * - reserve_space
+ * - fuse_amount
  *
  * @param optimizationResult - Result from backend optimizer
  * @param walCoinIds - Array of WAL Coin object IDs to use for payment
@@ -86,7 +89,6 @@ export function buildStoragePurchasePTB(
   // Step 1: Payment coin handling
   // Merge all WAL coins into one, then split for all payments in single operation
   let paymentCoins: TransactionArgument[] = [];
-  let paymentCoinRefs: TransactionArgument[] = [];
 
   if (paymentAmounts.length > 0) {
     if (walCoinIds.length === 0) {
@@ -100,11 +102,11 @@ export function buildStoragePurchasePTB(
     }
 
     // Single split for ALL payments (avoids coin locking issues)
-    paymentCoinRefs = tx.splitCoins(
+    const splitCoins = tx.splitCoins(
       tx.object(walCoinIds[0]),
       paymentAmounts.map((amount) => tx.pure.u64(amount)),
     );
-    paymentCoins = paymentCoinRefs;
+    paymentCoins = splitCoins;
   }
 
   // Step 2: Execute operations in order
@@ -149,31 +151,6 @@ export function buildStoragePurchasePTB(
         break;
       }
 
-      case "buy_partial_storage_epoch": {
-        if (
-          flow.paymentIndex === undefined ||
-          !op.storageObjectId ||
-          op.splitStartEpoch === undefined ||
-          op.splitEndEpoch === undefined
-        ) {
-          throw new Error(`Invalid buy_partial_storage_epoch operation at index ${flow.operationIndex}`);
-        }
-
-        const storage = tx.moveCall({
-          target: `${contractConfig.marketplacePackageId}::marketplace::buy_partial_storage_epoch`,
-          arguments: [
-            tx.object(contractConfig.marketplaceObjectId),
-            tx.pure.id(op.storageObjectId),
-            tx.pure.u32(op.splitStartEpoch),
-            tx.pure.u32(op.splitEndEpoch),
-            paymentCoins[flow.paymentIndex],
-          ],
-        });
-
-        storageRefs.set(flow.operationIndex, storage);
-        break;
-      }
-
       case "reserve_space": {
         if (
           flow.paymentIndex === undefined ||
@@ -204,56 +181,6 @@ export function buildStoragePurchasePTB(
         break;
       }
 
-      case "split_by_size": {
-        if (flow.inputStorageFromOperation === undefined || !op.splitSize) {
-          throw new Error(`Invalid split_by_size operation at index ${flow.operationIndex}`);
-        }
-
-        const inputStorage = storageRefs.get(flow.inputStorageFromOperation);
-        if (!inputStorage) {
-          throw new Error(`Input storage not found for split_by_size at index ${flow.operationIndex}`);
-        }
-
-        // split_by_size modifies the input storage in-place to have split_size
-        // and returns the remainder (original_size - split_size)
-        const remainder = tx.moveCall({
-          target: `${contractConfig.walrusPackageId}::storage_resource::split_by_size`,
-          arguments: [inputStorage, tx.pure.u64(op.splitSize)],
-        });
-
-        // Transfer remainder to sender (user receives it as bonus storage)
-        tx.transferObjects([remainder] as any, senderAddress);
-
-        // The input storage was modified in-place to have split_size, so we track it
-        storageRefs.set(flow.operationIndex, inputStorage);
-        break;
-      }
-
-      case "split_by_epoch": {
-        if (flow.inputStorageFromOperation === undefined || op.splitEpoch === undefined) {
-          throw new Error(`Invalid split_by_epoch operation at index ${flow.operationIndex}`);
-        }
-
-        const inputStorage = storageRefs.get(flow.inputStorageFromOperation);
-        if (!inputStorage) {
-          throw new Error(`Input storage not found for split_by_epoch at index ${flow.operationIndex}`);
-        }
-
-        // split_by_epoch modifies input to [start, split_epoch) and returns [split_epoch, end)
-        // We typically want the returned piece (later epochs), so we transfer the modified input
-        const returnedStorage = tx.moveCall({
-          target: `${contractConfig.walrusPackageId}::storage_resource::split_by_epoch`,
-          arguments: [inputStorage, tx.pure.u32(op.splitEpoch)],
-        });
-
-        // Transfer the modified input storage (earlier epochs) to sender as remainder
-        tx.transferObjects([inputStorage] as any, senderAddress);
-
-        // Track the returned storage (later epochs) for subsequent operations
-        storageRefs.set(flow.operationIndex, returnedStorage);
-        break;
-      }
-
       case "fuse_amount": {
         if (!flow.fuseTargets) {
           throw new Error(`Invalid fuse_amount operation at index ${flow.operationIndex}`);
@@ -261,14 +188,6 @@ export function buildStoragePurchasePTB(
 
         const firstStorage = storageRefs.get(flow.fuseTargets.first);
         const secondStorage = storageRefs.get(flow.fuseTargets.second);
-
-        console.log(`[PTB] fuse_amount operation ${flow.operationIndex}:`, {
-          first: flow.fuseTargets.first,
-          second: flow.fuseTargets.second,
-          firstStorage: firstStorage ? 'exists' : 'MISSING',
-          secondStorage: secondStorage ? 'exists' : 'MISSING',
-          activeRefs: Array.from(storageRefs.keys())
-        });
 
         if (!firstStorage || !secondStorage) {
           throw new Error(`Storage references not found for fuse_amount at index ${flow.operationIndex}`);
@@ -281,38 +200,6 @@ export function buildStoragePurchasePTB(
 
         // First storage is modified in place, second is consumed
         storageRefs.delete(flow.fuseTargets.second);
-        console.log(`[PTB] After fuse_amount, active refs:`, Array.from(storageRefs.keys()));
-        break;
-      }
-
-      case "fuse_period": {
-        if (!flow.fuseTargets) {
-          throw new Error(`Invalid fuse_period operation at index ${flow.operationIndex}`);
-        }
-
-        const firstStorage = storageRefs.get(flow.fuseTargets.first);
-        const secondStorage = storageRefs.get(flow.fuseTargets.second);
-
-        console.log(`[PTB] fuse_period operation ${flow.operationIndex}:`, {
-          first: flow.fuseTargets.first,
-          second: flow.fuseTargets.second,
-          firstStorage: firstStorage ? 'exists' : 'MISSING',
-          secondStorage: secondStorage ? 'exists' : 'MISSING',
-          activeRefs: Array.from(storageRefs.keys())
-        });
-
-        if (!firstStorage || !secondStorage) {
-          throw new Error(`Storage references not found for fuse_period at index ${flow.operationIndex}`);
-        }
-
-        tx.moveCall({
-          target: `${contractConfig.walrusPackageId}::storage_resource::fuse_periods`,
-          arguments: [firstStorage, secondStorage],
-        });
-
-        // First storage is modified in place, second is consumed
-        storageRefs.delete(flow.fuseTargets.second);
-        console.log(`[PTB] After fuse_period, active refs:`, Array.from(storageRefs.keys()));
         break;
       }
 
@@ -322,7 +209,7 @@ export function buildStoragePurchasePTB(
   }
 
   // Step 3: Transfer final Storage object to sender
-  // The final storage is the last remaining reference
+  // The final storage is the last remaining reference (should be at index 0 after all fuses)
   const finalStorageEntry = Array.from(storageRefs.entries()).pop();
   if (!finalStorageEntry) {
     throw new Error("No final storage object found after executing operations");
