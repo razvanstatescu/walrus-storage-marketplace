@@ -67,6 +67,23 @@ export default function OperationsGraph({ optimizationResult }: OperationsGraphP
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Handle responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    // Set initial value
+    handleResize();
+
+    // Add event listener
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (!optimizationResult || !containerRef.current) return;
@@ -186,12 +203,12 @@ export default function OperationsGraph({ optimizationResult }: OperationsGraphP
             color: "#1F2937",
             "text-valign": "center",
             "text-halign": "center",
-            "font-size": "10px",
+            "font-size": isMobile ? "8px" : "10px",
             "font-weight": "bold",
             "text-wrap": "wrap",
-            "text-max-width": "80px",
-            width: 100,
-            height: 60,
+            "text-max-width": isMobile ? "60px" : "80px",
+            width: isMobile ? 80 : 100,
+            height: isMobile ? 50 : 60,
             "border-width": 2,
             "border-color": "#1F2937",
             shape: "roundrectangle",
@@ -203,22 +220,22 @@ export default function OperationsGraph({ optimizationResult }: OperationsGraphP
             "background-color": "#10B981",
             "border-color": "#059669",
             "border-width": 3,
-            width: 120,
-            height: 50,
-            "font-size": "12px",
+            width: isMobile ? 100 : 120,
+            height: isMobile ? 45 : 50,
+            "font-size": isMobile ? "10px" : "12px",
           },
         },
         {
           selector: "edge",
           style: {
-            width: 2,
+            width: isMobile ? 1.5 : 2,
             "line-color": "#94A3B8",
             "target-arrow-color": "#94A3B8",
             "target-arrow-shape": "triangle",
             "curve-style": "bezier",
-            "arrow-scale": 1.5,
+            "arrow-scale": isMobile ? 1.2 : 1.5,
             label: "data(label)",
-            "font-size": "8px",
+            "font-size": isMobile ? "7px" : "8px",
             color: "#6B7280",
             "text-rotation": "autorotate",
             "text-margin-y": -10,
@@ -228,9 +245,9 @@ export default function OperationsGraph({ optimizationResult }: OperationsGraphP
       layout: {
         name: "dagre",
         rankDir: "TB", // Top to bottom
-        nodeSep: 30,
-        rankSep: 70,
-        padding: 20,
+        nodeSep: isMobile ? 20 : 30,
+        rankSep: isMobile ? 50 : 70,
+        padding: isMobile ? 10 : 20,
       } as any,
       userZoomingEnabled: true,
       userPanningEnabled: true,
@@ -266,54 +283,80 @@ export default function OperationsGraph({ optimizationResult }: OperationsGraphP
     return () => {
       cy.destroy();
     };
-  }, [optimizationResult]);
+  }, [optimizationResult, isMobile]);
 
   if (!optimizationResult) return null;
 
   return (
     <div className="mb-6">
-      <div
-        className="bg-white/70 border-2 border-[#97f0e5] rounded-xl overflow-hidden cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="p-4 flex justify-between items-center">
+      <div className="backdrop-blur-md bg-white/80 border-2 border-[#97f0e5] rounded-xl shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] overflow-hidden transition-all">
+        {/* Collapsible Header */}
+        <div
+          className="p-4 flex justify-between items-center cursor-pointer hover:bg-[#97f0e5]/10 transition-all"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
           <div>
             <div className="text-xs font-bold text-gray-600 mb-1">
               OPERATIONS FLOW
             </div>
-            <div className="text-sm text-gray-700">
+            <div className="text-sm text-gray-700 font-medium">
               {optimizationResult.operations.length} operation{optimizationResult.operations.length !== 1 ? "s" : ""} to get optimal price
             </div>
           </div>
-          <div className="text-2xl font-bold text-gray-600">
-            {isExpanded ? "−" : "+"}
+          <div
+            className={`text-2xl font-bold text-[#97f0e5] transition-transform ${
+              isExpanded ? "rotate-45" : ""
+            }`}
+          >
+            +
           </div>
         </div>
 
+        {/* Expanded Content */}
         {isExpanded && (
-          <div className="border-t-2 border-[#97f0e5] bg-white p-4">
+          <div className="border-t-2 border-[#97f0e5] bg-white/50 p-3 sm:p-4">
+            {/* Graph Canvas */}
             <div
               ref={containerRef}
-              className="w-full bg-gray-50 rounded-lg border-2 border-gray-200"
-              style={{ height: "400px" }}
+              className="w-full bg-gradient-to-br from-gray-50 to-white rounded-lg border-2 border-[#97f0e5]/50"
+              style={{ height: isMobile ? "300px" : "400px" }}
             />
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: OPERATION_COLORS.buy_full_storage }}></div>
-                <span>Purchase</span>
+
+            {/* Legend */}
+            <div className="mt-3 sm:mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 border border-[#97f0e5]/30">
+                <div
+                  className="w-3 h-3 sm:w-4 sm:h-4 rounded border border-gray-300"
+                  style={{ backgroundColor: OPERATION_COLORS.buy_full_storage }}
+                ></div>
+                <span className="font-semibold text-gray-700">Purchase</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: OPERATION_COLORS.reserve_space }}></div>
-                <span>Reserve</span>
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 border border-[#97f0e5]/30">
+                <div
+                  className="w-3 h-3 sm:w-4 sm:h-4 rounded border border-gray-300"
+                  style={{ backgroundColor: OPERATION_COLORS.reserve_space }}
+                ></div>
+                <span className="font-semibold text-gray-700">Reserve</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: OPERATION_COLORS.split_by_size }}></div>
-                <span>Split</span>
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 border border-[#97f0e5]/30">
+                <div
+                  className="w-3 h-3 sm:w-4 sm:h-4 rounded border border-gray-300"
+                  style={{ backgroundColor: OPERATION_COLORS.split_by_size }}
+                ></div>
+                <span className="font-semibold text-gray-700">Split</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: OPERATION_COLORS.fuse_amount }}></div>
-                <span>Fuse</span>
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 border border-[#97f0e5]/30">
+                <div
+                  className="w-3 h-3 sm:w-4 sm:h-4 rounded border border-gray-300"
+                  style={{ backgroundColor: OPERATION_COLORS.fuse_amount }}
+                ></div>
+                <span className="font-semibold text-gray-700">Fuse</span>
               </div>
+            </div>
+
+            {/* Info text */}
+            <div className="mt-3 text-xs text-center text-gray-600 font-medium">
+              Click and drag to pan • Scroll to zoom • Hover nodes for details
             </div>
           </div>
         )}
