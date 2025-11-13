@@ -20,6 +20,7 @@ import { useStorageOptimizer } from "@/hooks/useStorageOptimizer";
 import { formatWalPrice } from "@/lib/utils/storagePrice";
 import { useNetworkVariable } from "@/lib/config/sui";
 import { useToast } from "@/hooks/use-toast";
+import OperationsGraph from "@/components/operations-graph";
 
 type StorageUnit = "KiB" | "MiB" | "GiB" | "TiB";
 
@@ -283,6 +284,9 @@ export default function StorageReservation() {
           )}
         </div>
       </div>
+
+      {/* Operations Graph Visualization */}
+      <OperationsGraph optimizationResult={optimizationResult} />
 
       {/* Buy Button */}
       {!isConnected ? (
