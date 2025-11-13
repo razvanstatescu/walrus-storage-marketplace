@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useCurrentAccount, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
+import { buildStoragePurchasePTB, type ContractConfig } from "@/lib/utils/ptb-builder";
 
 interface OptimizeStorageRequest {
   size: string; // bigint as string (in bytes)
@@ -38,12 +40,32 @@ interface NewReservation {
   cost: string;
 }
 
+interface ExecutionFlow {
+  operationIndex: number;
+  type: string;
+  producesStorage: boolean;
+  storageRef?: string;
+  paymentIndex?: number;
+  sellerAddress?: string;
+  inputStorageFromOperation?: number;
+  fuseTargets?: {
+    first: number;
+    second: number;
+  };
+}
+
+interface PTBMetadata {
+  paymentAmounts: string[];
+  executionFlow: ExecutionFlow[];
+}
+
 interface OptimizationResult {
   operations: StorageOperation[];
   totalCost: string; // bigint as string (in FROST)
   systemOnlyPrice: string; // bigint as string (in FROST)
   allocations: Allocation[];
   needsNewReservation?: NewReservation;
+  ptbMetadata: PTBMetadata;
 }
 
 interface StorageOptimizerState {
@@ -82,6 +104,9 @@ export function useStorageOptimizer() {
     isLoading: false,
     error: null,
   });
+
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
   /**
    * Optimize storage allocation
@@ -127,6 +152,69 @@ export function useStorageOptimizer() {
   }, []);
 
   /**
+   * Execute storage purchase using the optimization result
+   *
+   * @param optimizationResult - Result from optimize() call
+   * @param walCoinIds - Array of WAL Coin object IDs to use for payment
+   * @param contractConfig - Contract addresses and package IDs
+   * @returns Transaction result
+   *
+   * @example
+   * ```tsx
+   * const { optimize, executePurchase } = useStorageOptimizer();
+   *
+   * // First optimize
+   * const result = await optimize({ size: "1048576", startEpoch: 100, endEpoch: 130 });
+   *
+   * // Then execute purchase
+   * const contractConfig = {
+   *   marketplacePackageId: "0x...",
+   *   marketplaceObjectId: "0x...",
+   *   walrusSystemObjectId: "0x...",
+   *   walrusPackageId: "0x..."
+   * };
+   * const txResult = await executePurchase(result, ["0xwalcoin1", "0xwalcoin2"], contractConfig);
+   * ```
+   */
+  const executePurchase = useCallback(
+    async (
+      optimizationResult: OptimizationResult,
+      walCoinIds: string[],
+      contractConfig: ContractConfig,
+    ) => {
+      if (!currentAccount) {
+        throw new Error("Wallet not connected");
+      }
+
+      try {
+        // Build the PTB
+        const tx = buildStoragePurchasePTB(
+          optimizationResult,
+          walCoinIds,
+          contractConfig,
+          currentAccount.address,
+        );
+
+        // Inspect transaction for debugging
+        console.log("[Transaction] Inspecting built transaction:");
+        console.log("[Transaction] Transaction data:", JSON.stringify(tx.getData(), null, 2));
+
+        // Sign and execute
+        const result = await signAndExecuteTransaction({
+          transaction: tx,
+        });
+
+        return result;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        throw new Error(`Purchase execution failed: ${errorMessage}`);
+      }
+    },
+    [currentAccount, signAndExecuteTransaction],
+  );
+
+  /**
    * Reset the state
    */
   const reset = useCallback(() => {
@@ -139,6 +227,7 @@ export function useStorageOptimizer() {
 
   return {
     optimize,
+    executePurchase,
     result: state.result,
     isLoading: state.isLoading,
     error: state.error,

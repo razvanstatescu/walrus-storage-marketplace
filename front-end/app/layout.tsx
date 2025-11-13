@@ -10,11 +10,10 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: 'Storewave - Walrus Storage Marketplace',
+  description: 'Decentralized storage marketplace on Sui powered by Walrus',
   icons: {
-    icon: '/icon.svg',
+    icon: '/icon.png',
   },
 }
 

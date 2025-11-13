@@ -12,12 +12,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Lock } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
-import { ConnectButton } from "@mysten/dapp-kit";
+import { ConnectButton, useSuiClient, useCurrentAccount } from "@mysten/dapp-kit";
 import { useWalrusEpoch } from "@/hooks/useWalrusEpoch";
 import { useStorageOptimizer } from "@/hooks/useStorageOptimizer";
 import { formatWalPrice } from "@/lib/utils/storagePrice";
+import { useNetworkVariable } from "@/lib/config/sui";
+import { useToast } from "@/hooks/use-toast";
 
 type StorageUnit = "KiB" | "MiB" | "GiB" | "TiB";
 
@@ -32,10 +34,21 @@ export default function StorageReservation() {
   const [size, setSize] = useState<number>(1);
   const [unit, setUnit] = useState<StorageUnit>("MiB");
   const [epochs, setEpochs] = useState<number[]>([5]); // Slider returns array
+  const [isExecuting, setIsExecuting] = useState(false);
 
   const { isConnected } = useWalletConnection();
   const { epoch: currentEpoch, isLoading: isLoadingEpoch } = useWalrusEpoch();
-  const { optimize, result: optimizationResult, isLoading: isOptimizing } = useStorageOptimizer();
+  const { optimize, executePurchase, result: optimizationResult, isLoading: isOptimizing } = useStorageOptimizer();
+  const currentAccount = useCurrentAccount();
+  const suiClient = useSuiClient();
+  const { toast } = useToast();
+
+  // Contract configuration
+  const packageId = useNetworkVariable("packageId");
+  const marketplaceConfigId = useNetworkVariable("marketplaceConfigId");
+  const walrusPackageId = useNetworkVariable("walrusPackageId");
+  const walrusSystemObjectId = useNetworkVariable("walrusSystemObjectId");
+  const walTokenType = useNetworkVariable("walTokenType");
 
   // Calculate total size in bytes
   const sizeInBytes = useMemo(() => {
@@ -86,13 +99,92 @@ export default function StorageReservation() {
   }, [optimizationResult]);
 
 
-  const handleReserveClick = () => {
-    // Handle reservation logic when connected
-    console.log("Reserving storage...", {
-      size: sizeInBytes.toString(),
-      epochs: epochs[0],
-      optimizationResult,
-    });
+  const handleReserveClick = async () => {
+    if (!currentAccount) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet to reserve storage",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!optimizationResult) {
+      toast({
+        title: "Optimization not ready",
+        description: "Please wait for the cost calculation to complete",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!packageId || !marketplaceConfigId || !walrusPackageId || !walrusSystemObjectId) {
+      toast({
+        title: "Configuration error",
+        description: "Contract addresses are not properly configured",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExecuting(true);
+
+    try {
+      console.log("Reserving storage...", {
+        size: sizeInBytes.toString(),
+        epochs: epochs[0],
+        optimizationResult,
+      });
+
+      // Fetch WAL coins from user's wallet
+      const { data: coins } = await suiClient.getCoins({
+        owner: currentAccount.address,
+        coinType: walTokenType,
+      });
+
+      if (!coins || coins.length === 0) {
+        toast({
+          title: "Insufficient balance",
+          description: "You don't have any WAL coins to pay for storage",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get coin IDs
+      const walCoinIds = coins.map((coin) => coin.coinObjectId);
+
+      // Build contract config
+      const contractConfig = {
+        marketplacePackageId: packageId,
+        marketplaceObjectId: marketplaceConfigId,
+        walrusSystemObjectId,
+        walrusPackageId,
+      };
+
+      // Execute purchase
+      const result = await executePurchase(
+        optimizationResult,
+        walCoinIds,
+        contractConfig
+      );
+
+      toast({
+        title: "Storage reserved successfully!",
+        description: `Transaction: ${result.digest}`,
+      });
+
+      console.log("Transaction result:", result);
+    } catch (error) {
+      console.error("Storage reservation failed:", error);
+      toast({
+        title: "Reservation failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExecuting(false);
+    }
   };
 
   return (
@@ -207,9 +299,22 @@ export default function StorageReservation() {
         <Button
           variant="outline"
           onClick={handleReserveClick}
-          className="w-full rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] h-12 cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+          disabled={isExecuting || isOptimizing || !optimizationResult}
+          className="w-full rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] h-12 cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0"
         >
-          Reserve Storage
+          {isExecuting ? (
+            <span className="flex items-center">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Executing Transaction...
+            </span>
+          ) : isOptimizing ? (
+            <span className="flex items-center">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Optimizing...
+            </span>
+          ) : (
+            "Reserve Storage"
+          )}
         </Button>
       )}
 

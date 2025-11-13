@@ -363,35 +363,15 @@ public fun buy_partial_storage_epoch(
     let payment_amount = coin::value(&payment);
     assert!(payment_amount >= total_price, EInsufficientPayment);
 
-    // Split storage by epoch
-    let purchased_storage = if (purchase_start_epoch > storage_start) {
-        // Need to split at start
-        let mut after_start = storage::split_by_epoch(
-            &mut listing.storage,
-            purchase_start_epoch,
-            ctx,
-        );
+    let seller = listing.seller;
+    let price_per_size_per_epoch = listing.price_per_size_per_epoch;
 
-        if (purchase_end_epoch < storage_end) {
-            // Also need to split at end
-            // The remainder after purchase_end_epoch needs to be fused back with listing.storage
-            let remainder = storage::split_by_epoch(&mut after_start, purchase_end_epoch, ctx);
-            // Fuse the remainder back with the original listing storage (which is before purchase_start)
-            storage::fuse_periods(&mut listing.storage, remainder);
-            after_start
-        } else {
-            after_start
-        }
-    } else if (purchase_end_epoch < storage_end) {
-        // Only need to split at end
-        storage::split_by_epoch(&mut listing.storage, purchase_end_epoch, ctx)
-    } else {
-        // This would be buying the full range - should use buy_full_storage instead
-        // But we allow it here for flexibility
+    // Handle full range purchase (edge case)
+    if (purchase_start_epoch == storage_start && purchase_end_epoch == storage_end) {
         let full_storage_id = object::id(&listing.storage);
         let ListedStorage {
             storage: full_storage,
-            seller,
+            seller: _,
             price_per_size_per_epoch: _,
         } = table::remove(&mut marketplace.listings, storage_id);
 
@@ -432,43 +412,286 @@ public fun buy_partial_storage_epoch(
         return full_storage
     };
 
-    let seller = listing.seller;
+    // Split storage by epoch
+    // NOTE: split_by_epoch modifies original to cover [start, split_epoch)
+    //       and returns NEW object covering [split_epoch, end)
 
-    // Calculate and collect marketplace fee
-    let fee_amount = calculate_fee(total_price, marketplace.fee_bps);
-    let seller_amount = total_price - fee_amount;
+    // We need to do the splits while storage is in the listing, then extract all pieces
+    if (purchase_start_epoch > storage_start && purchase_end_epoch < storage_end) {
+        // Case 1: Purchase is in the middle - need both start and end remainders
+        // Step 1: Split at purchase start
+        let mut after_start = storage::split_by_epoch(&mut listing.storage, purchase_start_epoch, ctx);
+        // listing.storage is now [storage_start, purchase_start) - START REMAINDER
+        // after_start is [purchase_start, storage_end)
 
-    if (fee_amount > 0) {
-        let fee_coin = coin::split(&mut payment, fee_amount, ctx);
-        coin::put(&mut marketplace.fees_collected, fee_coin);
-    };
+        // Step 2: Split at purchase end
+        let end_remainder = storage::split_by_epoch(&mut after_start, purchase_end_epoch, ctx);
+        // after_start is now [purchase_start, purchase_end) - PURCHASED
+        // end_remainder is [purchase_end, storage_end) - END REMAINDER
 
-    // Pay seller
-    if (seller_amount > 0) {
-        let seller_payment = coin::split(&mut payment, seller_amount, ctx);
-        transfer::public_transfer(seller_payment, seller);
-    };
+        // Extract start remainder from listing
+        let ListedStorage {
+            storage: start_remainder,
+            seller: _,
+            price_per_size_per_epoch: _,
+        } = table::remove(&mut marketplace.listings, storage_id);
 
-    // Return any excess payment to buyer
-    if (coin::value(&payment) > 0) {
-        transfer::public_transfer(payment, buyer);
+        // Emit delisting event for original listing
+        event::emit(StorageDelisted {
+            storage_id,
+            seller,
+        });
+
+        // Re-list start remainder
+        let start_rem_id = object::id(&start_remainder);
+        let start_rem_size = storage::size(&start_remainder);
+        let start_rem_start_epoch = storage::start_epoch(&start_remainder);
+        let start_rem_end_epoch = storage::end_epoch(&start_remainder);
+        let start_rem_total_price = calculate_total_price(
+            price_per_size_per_epoch,
+            start_rem_size,
+            start_rem_start_epoch,
+            start_rem_end_epoch,
+        );
+        table::add(&mut marketplace.listings, start_rem_id, ListedStorage {
+            storage: start_remainder,
+            seller,
+            price_per_size_per_epoch,
+        });
+
+        // Emit listing event for start remainder
+        event::emit(StorageListed {
+            storage_id: start_rem_id,
+            seller,
+            price_per_size_per_epoch,
+            size: start_rem_size,
+            start_epoch: start_rem_start_epoch,
+            end_epoch: start_rem_end_epoch,
+            total_price: start_rem_total_price,
+        });
+
+        // Re-list end remainder
+        let end_rem_id = object::id(&end_remainder);
+        let end_rem_size = storage::size(&end_remainder);
+        let end_rem_start_epoch = storage::start_epoch(&end_remainder);
+        let end_rem_end_epoch = storage::end_epoch(&end_remainder);
+        let end_rem_total_price = calculate_total_price(
+            price_per_size_per_epoch,
+            end_rem_size,
+            end_rem_start_epoch,
+            end_rem_end_epoch,
+        );
+        table::add(&mut marketplace.listings, end_rem_id, ListedStorage {
+            storage: end_remainder,
+            seller,
+            price_per_size_per_epoch,
+        });
+
+        // Emit listing event for end remainder
+        event::emit(StorageListed {
+            storage_id: end_rem_id,
+            seller,
+            price_per_size_per_epoch,
+            size: end_rem_size,
+            start_epoch: end_rem_start_epoch,
+            end_epoch: end_rem_end_epoch,
+            total_price: end_rem_total_price,
+        });
+
+        // Payment and return
+        let fee_amount = calculate_fee(total_price, marketplace.fee_bps);
+        let seller_amount = total_price - fee_amount;
+
+        if (fee_amount > 0) {
+            let fee_coin = coin::split(&mut payment, fee_amount, ctx);
+            coin::put(&mut marketplace.fees_collected, fee_coin);
+        };
+
+        if (seller_amount > 0) {
+            let seller_payment = coin::split(&mut payment, seller_amount, ctx);
+            transfer::public_transfer(seller_payment, seller);
+        };
+
+        if (coin::value(&payment) > 0) {
+            transfer::public_transfer(payment, buyer);
+        } else {
+            coin::destroy_zero(payment);
+        };
+
+        event::emit(StoragePurchased {
+            storage_id,
+            buyer,
+            seller,
+            amount_paid: total_price,
+            purchase_type: string::utf8(b"partial_epoch"),
+            purchased_size: size,
+            purchased_start_epoch: purchase_start_epoch,
+            purchased_end_epoch: purchase_end_epoch,
+        });
+
+        return after_start
+    } else if (purchase_start_epoch > storage_start) {
+        // Case 2: Purchase from middle to end - only start remainder
+        let purchased = storage::split_by_epoch(&mut listing.storage, purchase_start_epoch, ctx);
+        // listing.storage is now [storage_start, purchase_start) - START REMAINDER
+        // purchased is [purchase_start, storage_end) - PURCHASED
+
+        // Extract start remainder from listing
+        let ListedStorage {
+            storage: start_remainder,
+            seller: _,
+            price_per_size_per_epoch: _,
+        } = table::remove(&mut marketplace.listings, storage_id);
+
+        // Emit delisting event for original listing
+        event::emit(StorageDelisted {
+            storage_id,
+            seller,
+        });
+
+        // Re-list start remainder
+        let start_rem_id = object::id(&start_remainder);
+        let start_rem_size = storage::size(&start_remainder);
+        let start_rem_start_epoch = storage::start_epoch(&start_remainder);
+        let start_rem_end_epoch = storage::end_epoch(&start_remainder);
+        let start_rem_total_price = calculate_total_price(
+            price_per_size_per_epoch,
+            start_rem_size,
+            start_rem_start_epoch,
+            start_rem_end_epoch,
+        );
+        table::add(&mut marketplace.listings, start_rem_id, ListedStorage {
+            storage: start_remainder,
+            seller,
+            price_per_size_per_epoch,
+        });
+
+        // Emit listing event for start remainder
+        event::emit(StorageListed {
+            storage_id: start_rem_id,
+            seller,
+            price_per_size_per_epoch,
+            size: start_rem_size,
+            start_epoch: start_rem_start_epoch,
+            end_epoch: start_rem_end_epoch,
+            total_price: start_rem_total_price,
+        });
+
+        // Payment and return
+        let fee_amount = calculate_fee(total_price, marketplace.fee_bps);
+        let seller_amount = total_price - fee_amount;
+
+        if (fee_amount > 0) {
+            let fee_coin = coin::split(&mut payment, fee_amount, ctx);
+            coin::put(&mut marketplace.fees_collected, fee_coin);
+        };
+
+        if (seller_amount > 0) {
+            let seller_payment = coin::split(&mut payment, seller_amount, ctx);
+            transfer::public_transfer(seller_payment, seller);
+        };
+
+        if (coin::value(&payment) > 0) {
+            transfer::public_transfer(payment, buyer);
+        } else {
+            coin::destroy_zero(payment);
+        };
+
+        event::emit(StoragePurchased {
+            storage_id,
+            buyer,
+            seller,
+            amount_paid: total_price,
+            purchase_type: string::utf8(b"partial_epoch"),
+            purchased_size: size,
+            purchased_start_epoch: purchase_start_epoch,
+            purchased_end_epoch: purchase_end_epoch,
+        });
+
+        return purchased
+    } else if (purchase_end_epoch < storage_end) {
+        // Case 3: Purchase from start to middle - only end remainder
+        let end_remainder = storage::split_by_epoch(&mut listing.storage, purchase_end_epoch, ctx);
+        // listing.storage is now [storage_start, purchase_end) - PURCHASED
+        // end_remainder is [purchase_end, storage_end) - END REMAINDER
+
+        // Extract purchased portion from listing
+        let ListedStorage {
+            storage: purchased,
+            seller: _,
+            price_per_size_per_epoch: _,
+        } = table::remove(&mut marketplace.listings, storage_id);
+
+        // Emit delisting event for original listing
+        event::emit(StorageDelisted {
+            storage_id,
+            seller,
+        });
+
+        // Re-list end remainder
+        let end_rem_id = object::id(&end_remainder);
+        let end_rem_size = storage::size(&end_remainder);
+        let end_rem_start_epoch = storage::start_epoch(&end_remainder);
+        let end_rem_end_epoch = storage::end_epoch(&end_remainder);
+        let end_rem_total_price = calculate_total_price(
+            price_per_size_per_epoch,
+            end_rem_size,
+            end_rem_start_epoch,
+            end_rem_end_epoch,
+        );
+        table::add(&mut marketplace.listings, end_rem_id, ListedStorage {
+            storage: end_remainder,
+            seller,
+            price_per_size_per_epoch,
+        });
+
+        // Emit listing event for end remainder
+        event::emit(StorageListed {
+            storage_id: end_rem_id,
+            seller,
+            price_per_size_per_epoch,
+            size: end_rem_size,
+            start_epoch: end_rem_start_epoch,
+            end_epoch: end_rem_end_epoch,
+            total_price: end_rem_total_price,
+        });
+
+        // Payment and return
+        let fee_amount = calculate_fee(total_price, marketplace.fee_bps);
+        let seller_amount = total_price - fee_amount;
+
+        if (fee_amount > 0) {
+            let fee_coin = coin::split(&mut payment, fee_amount, ctx);
+            coin::put(&mut marketplace.fees_collected, fee_coin);
+        };
+
+        if (seller_amount > 0) {
+            let seller_payment = coin::split(&mut payment, seller_amount, ctx);
+            transfer::public_transfer(seller_payment, seller);
+        };
+
+        if (coin::value(&payment) > 0) {
+            transfer::public_transfer(payment, buyer);
+        } else {
+            coin::destroy_zero(payment);
+        };
+
+        event::emit(StoragePurchased {
+            storage_id,
+            buyer,
+            seller,
+            amount_paid: total_price,
+            purchase_type: string::utf8(b"partial_epoch"),
+            purchased_size: size,
+            purchased_start_epoch: purchase_start_epoch,
+            purchased_end_epoch: purchase_end_epoch,
+        });
+
+        return purchased
     } else {
-        coin::destroy_zero(payment);
-    };
-
-    // Emit event
-    event::emit(StoragePurchased {
-        storage_id,
-        buyer,
-        seller,
-        amount_paid: total_price,
-        purchase_type: string::utf8(b"partial_epoch"),
-        purchased_size: size,
-        purchased_start_epoch: purchase_start_epoch,
-        purchased_end_epoch: purchase_end_epoch,
-    });
-
-    purchased_storage
+        // Case 4: This should never happen as full range is handled earlier
+        abort EInvalidSplitEpoch
+    }
 }
 
 /// Buy partial storage by size
@@ -508,10 +731,60 @@ public fun buy_partial_storage_size(
     let payment_amount = coin::value(&payment);
     assert!(payment_amount >= total_price, EInsufficientPayment);
 
-    // Split storage by size
-    let purchased_storage = storage::split_by_size(&mut listing.storage, purchase_size, ctx);
-
     let seller = listing.seller;
+    let price_per_size_per_epoch = listing.price_per_size_per_epoch;
+
+    // Split storage by size
+    // NOTE: split_by_size modifies listing.storage to be purchase_size
+    //       and returns a NEW object with the remainder
+    let remainder = storage::split_by_size(&mut listing.storage, purchase_size, ctx);
+    let remainder_size = storage::size(&remainder);
+
+    // Remove the listing to extract the purchased storage
+    let ListedStorage {
+        storage: purchased_storage,
+        seller: _,
+        price_per_size_per_epoch: _,
+    } = table::remove(&mut marketplace.listings, storage_id);
+
+    // Emit delisting event for original listing
+    event::emit(StorageDelisted {
+        storage_id,
+        seller,
+    });
+
+    // If remainder exists, create a new listing for it
+    if (remainder_size > 0) {
+        let remainder_id = object::id(&remainder);
+        let remainder_start_epoch = storage::start_epoch(&remainder);
+        let remainder_end_epoch = storage::end_epoch(&remainder);
+        let remainder_total_price = calculate_total_price(
+            price_per_size_per_epoch,
+            remainder_size,
+            remainder_start_epoch,
+            remainder_end_epoch,
+        );
+        let new_listing = ListedStorage {
+            storage: remainder,
+            seller,
+            price_per_size_per_epoch,
+        };
+        table::add(&mut marketplace.listings, remainder_id, new_listing);
+
+        // Emit listing event for remainder
+        event::emit(StorageListed {
+            storage_id: remainder_id,
+            seller,
+            price_per_size_per_epoch,
+            size: remainder_size,
+            start_epoch: remainder_start_epoch,
+            end_epoch: remainder_end_epoch,
+            total_price: remainder_total_price,
+        });
+    } else {
+        // No remainder, destroy the empty storage
+        storage::destroy(remainder);
+    };
 
     // Calculate and collect marketplace fee
     let fee_amount = calculate_fee(total_price, marketplace.fee_bps);

@@ -14,6 +14,7 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
       blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
       walrusPackageId: process.env.NEXT_PUBLIC_WALRUS_PACKAGE_ID || '',
       walrusSystemObjectId: process.env.NEXT_PUBLIC_WALRUS_SYSTEM_OBJECT_ID || '',
+      walTokenType: process.env.NEXT_PUBLIC_WAL_TOKEN_TYPE || '0x2::sui::SUI',
     }
   },
   devnet: {
@@ -25,6 +26,7 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
       blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
       walrusPackageId: process.env.NEXT_PUBLIC_WALRUS_PACKAGE_ID || '',
       walrusSystemObjectId: process.env.NEXT_PUBLIC_WALRUS_SYSTEM_OBJECT_ID || '',
+      walTokenType: process.env.NEXT_PUBLIC_WAL_TOKEN_TYPE || '0x2::sui::SUI',
     }
   },
   testnet: {
@@ -36,6 +38,7 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
       blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
       walrusPackageId: process.env.NEXT_PUBLIC_WALRUS_PACKAGE_ID || '',
       walrusSystemObjectId: process.env.NEXT_PUBLIC_WALRUS_SYSTEM_OBJECT_ID || '',
+      walTokenType: process.env.NEXT_PUBLIC_WAL_TOKEN_TYPE || '0x8270feb7375eee355e64fdb69c50abb6b5f9393a722883c1cf45f8e26048810a::wal::WAL',
     }
   },
   mainnet: {
@@ -47,6 +50,7 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } = createNetwork
       blobObjectType: process.env.NEXT_PUBLIC_BLOB_OBJECT_TYPE || 'walrus::blob::Blob',
       walrusPackageId: process.env.NEXT_PUBLIC_WALRUS_PACKAGE_ID || '',
       walrusSystemObjectId: process.env.NEXT_PUBLIC_WALRUS_SYSTEM_OBJECT_ID || '',
+      walTokenType: process.env.NEXT_PUBLIC_WAL_TOKEN_TYPE || '0x2::sui::SUI',
     }
   },
 })

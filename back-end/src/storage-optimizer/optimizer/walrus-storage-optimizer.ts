@@ -813,14 +813,79 @@ export function generateStorageOperations(
           });
         }
       } else {
-        // Complex case: pieces are not adjacent or different sizes
-        // Fall back to fuse_amount (may not work in all cases)
-        const totalFusions = sortedPieces.length - 1;
-        for (let i = 0; i < totalFusions; i++) {
-          operations.push({
-            type: 'fuse_amount',
-            description: `fuse_amount() → combine storage objects (complex case)`
-          });
+        // Complex case: pieces have different epoch ranges and/or different sizes
+        // Strategy: Group by epoch range, fuse within groups, then try to fuse groups
+
+        // Group pieces by epoch range
+        const epochGroups = new Map<string, typeof sortedPieces>();
+        for (const piece of sortedPieces) {
+          const key = `${piece.startEpoch}-${piece.endEpoch}`;
+          if (!epochGroups.has(key)) {
+            epochGroups.set(key, []);
+          }
+          epochGroups.get(key)!.push(piece);
+        }
+
+        // Sort groups by start epoch
+        const sortedGroups = Array.from(epochGroups.entries())
+          .map(([key, pieces]) => ({
+            key,
+            startEpoch: pieces[0].startEpoch,
+            endEpoch: pieces[0].endEpoch,
+            pieces
+          }))
+          .sort((a, b) => a.startEpoch - b.startEpoch);
+
+        // Step 3a: Fuse within each epoch group using fuse_amount
+        for (const group of sortedGroups) {
+          if (group.pieces.length > 1) {
+            const fuseCount = group.pieces.length - 1;
+            for (let i = 0; i < fuseCount; i++) {
+              operations.push({
+                type: 'fuse_amount',
+                description: `fuse_amount() → combine ${group.pieces.length} pieces within epoch range ${group.startEpoch}-${group.endEpoch}`
+              });
+            }
+          }
+        }
+
+        // Step 3b: Try to fuse groups together using fuse_period
+        // Check if groups are adjacent and result in same size after fusing within groups
+        if (sortedGroups.length > 1) {
+          let canFuseGroups = true;
+
+          // Calculate total size for each group after fusing within group
+          const groupSizes = sortedGroups.map(group =>
+            group.pieces.reduce((sum, p) => sum + p.size, 0n)
+          );
+
+          // Check if all groups have same total size
+          const allGroupsSameSize = groupSizes.every(size => size === groupSizes[0]);
+
+          // Check if groups are adjacent
+          for (let i = 0; i < sortedGroups.length - 1; i++) {
+            if (sortedGroups[i].endEpoch !== sortedGroups[i + 1].startEpoch) {
+              canFuseGroups = false;
+              break;
+            }
+          }
+
+          if (canFuseGroups && allGroupsSameSize) {
+            // Groups are adjacent and have same size - fuse them with fuse_period
+            const fuseCount = sortedGroups.length - 1;
+            for (let i = 0; i < fuseCount; i++) {
+              operations.push({
+                type: 'fuse_period',
+                description: `fuse_period() → merge group ${sortedGroups[i].startEpoch}-${sortedGroups[i].endEpoch} with ${sortedGroups[i + 1].startEpoch}-${sortedGroups[i + 1].endEpoch}`
+              });
+            }
+          } else {
+            // Cannot fuse groups - they are either non-adjacent or have different sizes
+            // This is a limitation of the current approach
+            // For now, we'll leave them as separate pieces
+            // TODO: Implement split operations to align sizes before fusing
+            console.warn(`Cannot fuse ${sortedGroups.length} epoch groups: adjacent=${canFuseGroups && !allGroupsSameSize ? 'yes' : 'no'}, same_size=${allGroupsSameSize}`);
+          }
         }
       }
     }
