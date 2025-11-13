@@ -86,7 +86,7 @@ export default function OperationsGraph({ optimizationResult }: OperationsGraphP
   }, []);
 
   useEffect(() => {
-    if (!optimizationResult || !containerRef.current) return;
+    if (!optimizationResult || !containerRef.current || !isExpanded) return;
 
     const { operations, ptbMetadata } = optimizationResult;
 
@@ -283,7 +283,7 @@ export default function OperationsGraph({ optimizationResult }: OperationsGraphP
     return () => {
       cy.destroy();
     };
-  }, [optimizationResult, isMobile]);
+  }, [optimizationResult, isMobile, isExpanded]);
 
   if (!optimizationResult) return null;
 
