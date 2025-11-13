@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useCurrentAccount, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
-import { buildStoragePurchasePTB, type ContractConfig } from "@/lib/utils/ptb-builder";
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
+import {
+  buildStoragePurchasePTB,
+  isSystemOnly,
+  dryRunPTB,
+  MixedOperationFailureError,
+  type ContractConfig,
+} from "@/lib/utils/ptb-builder";
 
 interface OptimizeStorageRequest {
   size: string; // bigint as string (in bytes)
@@ -107,6 +113,7 @@ export function useStorageOptimizer() {
 
   const currentAccount = useCurrentAccount();
   const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const suiClient = useSuiClient();
 
   /**
    * Optimize storage allocation
@@ -195,6 +202,23 @@ export function useStorageOptimizer() {
           currentAccount.address,
         );
 
+        // Safety check: If NOT system-only (marketplace or mixed), dry run first
+        if (!isSystemOnly(optimizationResult)) {
+          console.log("[Transaction] Marketplace operations detected, performing dry run...");
+          const dryRunResult = await dryRunPTB(tx, suiClient, currentAccount.address);
+
+          if (!dryRunResult.success) {
+            console.error("[Transaction] Dry run failed:", dryRunResult.error);
+            // Throw special error that includes suggestion
+            throw new MixedOperationFailureError(
+              "Transaction would fail. Consider using system storage only.",
+              dryRunResult.error,
+            );
+          }
+
+          console.log("[Transaction] Dry run passed successfully");
+        }
+
         // Inspect transaction for debugging
         console.log("[Transaction] Inspecting built transaction:");
         console.log("[Transaction] Transaction data:", JSON.stringify(tx.getData(), null, 2));
@@ -206,12 +230,17 @@ export function useStorageOptimizer() {
 
         return result;
       } catch (error) {
+        // Re-throw MixedOperationFailureError as-is
+        if (error instanceof MixedOperationFailureError) {
+          throw error;
+        }
+
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
         throw new Error(`Purchase execution failed: ${errorMessage}`);
       }
     },
-    [currentAccount, signAndExecuteTransaction],
+    [currentAccount, signAndExecuteTransaction, suiClient],
   );
 
   /**

@@ -21,6 +21,8 @@ import { formatWalPrice } from "@/lib/utils/storagePrice";
 import { useNetworkVariable } from "@/lib/config/sui";
 import { useToast } from "@/hooks/use-toast";
 import OperationsGraph from "@/components/operations-graph";
+import { SystemOnlyConfirmDialog } from "@/components/SystemOnlyConfirmDialog";
+import { MixedOperationFailureError, buildSystemOnlyPTB } from "@/lib/utils/ptb-builder";
 
 type StorageUnit = "KiB" | "MiB" | "GiB" | "TiB";
 
@@ -36,6 +38,9 @@ export default function StorageReservation() {
   const [unit, setUnit] = useState<StorageUnit>("MiB");
   const [epochs, setEpochs] = useState<number[]>([5]); // Slider returns array
   const [isExecuting, setIsExecuting] = useState(false);
+  const [showSystemOnlyDialog, setShowSystemOnlyDialog] = useState(false);
+  const [dryRunError, setDryRunError] = useState<string>("");
+  const [pendingWalCoinIds, setPendingWalCoinIds] = useState<string[]>([]);
 
   const { isConnected } = useWalletConnection();
   const { epoch: currentEpoch, isLoading: isLoadingEpoch } = useWalrusEpoch();
@@ -129,6 +134,7 @@ export default function StorageReservation() {
     }
 
     setIsExecuting(true);
+    let walCoinIds: string[] = [];
 
     try {
       console.log("Reserving storage...", {
@@ -153,7 +159,7 @@ export default function StorageReservation() {
       }
 
       // Get coin IDs
-      const walCoinIds = coins.map((coin) => coin.coinObjectId);
+      walCoinIds = coins.map((coin) => coin.coinObjectId);
 
       // Build contract config
       const contractConfig = {
@@ -177,7 +183,104 @@ export default function StorageReservation() {
 
       console.log("Transaction result:", result);
     } catch (error) {
+      // Check if this is a mixed operation dry run failure
+      if (error instanceof MixedOperationFailureError) {
+        setDryRunError(error.dryRunError || error.message);
+        setPendingWalCoinIds(walCoinIds);
+        setShowSystemOnlyDialog(true);
+        return;
+      }
+
+      // For other errors, log and show toast
       console.error("Storage reservation failed:", error);
+      toast({
+        title: "Reservation failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  const handleMixedOperationConfirm = async () => {
+    setShowSystemOnlyDialog(false);
+    // User wants to try the mixed operation anyway
+    // We'll need to bypass the dry run check somehow
+    toast({
+      title: "Proceeding with mixed operation",
+      description: "Note: This transaction may still fail during execution",
+      variant: "default",
+    });
+  };
+
+  const handleSystemOnlyConfirm = async () => {
+    setShowSystemOnlyDialog(false);
+
+    if (!currentAccount || !optimizationResult || !packageId || !walrusPackageId || !walrusSystemObjectId || !marketplaceConfigId) {
+      toast({
+        title: "Configuration error",
+        description: "Missing required configuration",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExecuting(true);
+
+    try {
+      // Build contract config
+      const contractConfig = {
+        marketplacePackageId: packageId,
+        marketplaceObjectId: marketplaceConfigId,
+        walrusSystemObjectId,
+        walrusPackageId,
+      };
+
+      // Calculate start and end epochs
+      const startEpoch = currentEpoch + 1;
+      const endEpoch = startEpoch + epochs[0] - 1;
+
+      // Create a system-only optimization result
+      const systemOnlyResult = {
+        operations: [{
+          type: 'reserve_space',
+          description: 'Reserve from system storage',
+          reserveSize: sizeInBytes.toString(),
+          startEpoch,
+          endEpoch,
+          cost: optimizationResult.systemOnlyPrice,
+        }],
+        totalCost: optimizationResult.systemOnlyPrice,
+        systemOnlyPrice: optimizationResult.systemOnlyPrice,
+        allocations: [],
+        ptbMetadata: {
+          paymentAmounts: [optimizationResult.systemOnlyPrice],
+          executionFlow: [{
+            operationIndex: 0,
+            type: 'reserve_space',
+            producesStorage: true,
+            storageRef: 'storage_0',
+            paymentIndex: 0,
+          }],
+        },
+      };
+
+      // Execute purchase with system-only result
+      const result = await executePurchase(
+        systemOnlyResult,
+        pendingWalCoinIds,
+        contractConfig,
+      );
+
+      toast({
+        title: "Storage reserved successfully!",
+        description: `Transaction: ${result.digest}`,
+      });
+
+      console.log("System-only transaction result:", result);
+    } catch (error) {
+      console.error("System-only reservation failed:", error);
       toast({
         title: "Reservation failed",
         description: error instanceof Error ? error.message : "Unknown error occurred",
@@ -327,6 +430,17 @@ export default function StorageReservation() {
         Storage will be reserved for {epochs[0]} epoch{epochs[0] !== 1 ? "s" : ""}
         {" "}({size} {unit} total)
       </p>
+
+      {/* System-Only Confirmation Dialog */}
+      <SystemOnlyConfirmDialog
+        isOpen={showSystemOnlyDialog}
+        onClose={() => setShowSystemOnlyDialog(false)}
+        onConfirmMixed={handleMixedOperationConfirm}
+        onConfirmSystemOnly={handleSystemOnlyConfirm}
+        mixedCost={optimizationResult ? formatWalPrice(optimizationResult.totalCost, 4) : "0 WAL"}
+        systemOnlyCost={optimizationResult ? formatWalPrice(optimizationResult.systemOnlyPrice, 4) : "0 WAL"}
+        errorMessage={dryRunError}
+      />
     </div>
   );
 }

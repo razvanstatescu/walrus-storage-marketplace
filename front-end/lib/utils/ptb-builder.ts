@@ -1,4 +1,5 @@
 import { Transaction, TransactionArgument } from "@mysten/sui/transactions";
+import { SuiClient } from "@mysten/sui/client";
 
 /**
  * Interfaces matching backend DTOs
@@ -49,6 +50,19 @@ export interface ContractConfig {
   marketplaceObjectId: string;
   walrusSystemObjectId: string;
   walrusPackageId: string;
+}
+
+/**
+ * Custom error for mixed operation dry run failures
+ */
+export class MixedOperationFailureError extends Error {
+  constructor(
+    message: string,
+    public dryRunError?: string,
+  ) {
+    super(message);
+    this.name = "MixedOperationFailureError";
+  }
 }
 
 /**
@@ -220,6 +234,96 @@ export function buildStoragePurchasePTB(
 
   const finalStorage = finalStorageEntry[1];
   tx.transferObjects([finalStorage] as any, senderAddress);
+
+  return tx;
+}
+
+/**
+ * Check if optimization result contains mixed operations (marketplace + system)
+ */
+export function isMixedOperation(result: OptimizationResult): boolean {
+  return result.allocations.length > 0 && result.needsNewReservation !== undefined;
+}
+
+/**
+ * Check if optimization result is system-only
+ */
+export function isSystemOnly(result: OptimizationResult): boolean {
+  return result.allocations.length === 0;
+}
+
+/**
+ * Dry run a transaction to check if it would succeed
+ */
+export async function dryRunPTB(
+  tx: Transaction,
+  suiClient: SuiClient,
+  senderAddress: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Set the sender address for dry run
+    tx.setSender(senderAddress);
+
+    const result = await suiClient.dryRunTransactionBlock({
+      transactionBlock: await tx.build({ client: suiClient }),
+    });
+
+    return {
+      success: result.effects.status.status === "success",
+      error: result.effects.status.error,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Dry run failed",
+    };
+  }
+}
+
+/**
+ * Build a system-only PTB for storage reservation
+ * This is used as a fallback when mixed operations fail dry run
+ */
+export function buildSystemOnlyPTB(
+  size: string,
+  startEpoch: number,
+  endEpoch: number,
+  walCoinIds: string[],
+  contractConfig: ContractConfig,
+  senderAddress: string,
+): Transaction {
+  const tx = new Transaction();
+
+  if (walCoinIds.length === 0) {
+    throw new Error("No WAL coins provided for payment");
+  }
+
+  // Merge all coins into the first one
+  if (walCoinIds.length > 1) {
+    const otherCoins = walCoinIds.slice(1).map((id) => tx.object(id));
+    tx.mergeCoins(tx.object(walCoinIds[0]), otherCoins);
+  }
+
+  // Split payment for reserve
+  const [paymentCoin] = tx.splitCoins(tx.object(walCoinIds[0]), [tx.pure.u64(0)]); // Amount will be deducted by the system
+
+  // Reserve space from system
+  const storage = tx.moveCall({
+    target: `${contractConfig.walrusPackageId}::system::reserve_space_for_epochs`,
+    arguments: [
+      tx.object(contractConfig.walrusSystemObjectId),
+      tx.pure.u64(size),
+      tx.pure.u32(startEpoch),
+      tx.pure.u32(endEpoch),
+      paymentCoin,
+    ],
+  });
+
+  // Transfer payment coin back to sender
+  tx.transferObjects([paymentCoin] as any, senderAddress);
+
+  // Transfer storage to sender
+  tx.transferObjects([storage] as any, senderAddress);
 
   return tx;
 }
