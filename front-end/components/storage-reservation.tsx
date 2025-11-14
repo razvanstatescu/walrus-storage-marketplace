@@ -303,51 +303,56 @@ export default function StorageReservation() {
 
   return (
     <div className="backdrop-blur-md bg-[#97f0e5]/5 border-2 border-[#97f0e5] rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]">
-      {/* Storage Size Input */}
+      {/* Storage Size Input and Epoch Slider (Combined Row) */}
       <div className="mb-6">
-        <Label className="text-sm font-bold mb-2 block">STORAGE SIZE</Label>
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            min="1"
-            value={size}
-            onChange={(e) => setSize(Number(e.target.value))}
-            className="flex-1 border-2 border-[#97f0e5] rounded-xl font-bold"
-            placeholder="Enter size"
-          />
-          <Select value={unit} onValueChange={(v) => setUnit(v as StorageUnit)}>
-            <SelectTrigger className="w-[100px] border-2 border-[#97f0e5] rounded-xl font-bold">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="KiB">KiB</SelectItem>
-              <SelectItem value="MiB">MiB</SelectItem>
-              <SelectItem value="GiB">GiB</SelectItem>
-              <SelectItem value="TiB">TiB</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+          {/* Left side: Storage Size (1/3) */}
+          <div className="flex-none w-full md:w-1/3">
+            <Label className="text-sm font-bold mb-2 block">STORAGE SIZE</Label>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                min="1"
+                value={size}
+                onChange={(e) => setSize(Number(e.target.value))}
+                className="flex-1 border-2 border-[#97f0e5] rounded-xl font-bold"
+                placeholder="Enter size"
+              />
+              <Select value={unit} onValueChange={(v) => setUnit(v as StorageUnit)}>
+                <SelectTrigger className="w-[100px] border-2 border-[#97f0e5] rounded-xl font-bold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="KiB">KiB</SelectItem>
+                  <SelectItem value="MiB">MiB</SelectItem>
+                  <SelectItem value="GiB">GiB</SelectItem>
+                  <SelectItem value="TiB">TiB</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-      {/* Epoch Slider */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-2">
-          <Label className="text-sm font-bold">RESERVATION EPOCHS</Label>
-          <span className="text-sm font-bold text-secondary">
-            {epochs[0]} epochs
-          </span>
-        </div>
-        <Slider
-          value={epochs}
-          onValueChange={setEpochs}
-          min={1}
-          max={365}
-          step={1}
-          className="w-full"
-        />
-        <div className="flex justify-between text-xs text-gray-600 mt-1">
-          <span>1 epoch</span>
-          <span>365 epochs</span>
+          {/* Right side: Epoch Slider (2/3) */}
+          <div className="flex-1">
+            <div className="flex justify-between items-center mb-2">
+              <Label className="text-sm font-bold">RESERVATION EPOCHS</Label>
+              <span className="text-sm font-bold text-secondary">
+                {epochs[0]} epochs
+              </span>
+            </div>
+            <Slider
+              value={epochs}
+              onValueChange={setEpochs}
+              min={1}
+              max={365}
+              step={1}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-gray-600 mt-1">
+              <span>1 epoch</span>
+              <span>365 epochs</span>
+            </div>
+          </div>
         </div>
       </div>
 
