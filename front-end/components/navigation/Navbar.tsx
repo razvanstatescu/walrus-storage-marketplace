@@ -14,6 +14,7 @@ import { Menu, LogOut } from "lucide-react";
 import { MobileNav } from "@/components/navigation/MobileNav";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { useWalrusEpoch } from "@/hooks/useWalrusEpoch";
+import { useWalBalance } from "@/hooks/useWalBalance";
 import { ConnectButton } from "@mysten/dapp-kit";
 
 interface NavbarProps {
@@ -35,6 +36,7 @@ export function Navbar({
 }: NavbarProps) {
   const { isConnected, address, disconnect } = useWalletConnection();
   const { epoch, isLoading: isLoadingEpoch } = useWalrusEpoch();
+  const { balance, isLoading: isLoadingBalance } = useWalBalance();
 
   // Helper function to format address
   const formatAddress = (addr: string) => {
@@ -94,6 +96,20 @@ export function Navbar({
                 {isLoadingEpoch ? "..." : epoch ?? "N/A"}
               </span>
             </div>
+
+            {/* WAL Balance Display (only when connected) */}
+            {isConnected && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-[#97f0e5] bg-white/50 font-bold text-sm">
+                <span className="text-gray-600">Balance:</span>
+                <span className="font-mono">
+                  {isLoadingBalance
+                    ? "..."
+                    : balance !== null
+                    ? `${balance.toFixed(1)} WAL`
+                    : "N/A"}
+                </span>
+              </div>
+            )}
 
             {!isConnected ? (
               <ConnectButton

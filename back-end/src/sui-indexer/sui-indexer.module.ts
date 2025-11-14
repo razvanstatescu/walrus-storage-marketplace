@@ -3,6 +3,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
 import { SuiClientModule } from './sui-client/sui-client.module';
+import { WalrusModule } from '../walrus/walrus.module';
 import suiIndexerConfig from '../config/sui-indexer.config';
 
 // Services
@@ -27,6 +28,7 @@ import { IndexerController } from './controllers/indexer.controller';
     ConfigModule.forFeature(suiIndexerConfig),
     PrismaModule,
     SuiClientModule,
+    WalrusModule,
   ],
   providers: [
     // Core services

@@ -5,12 +5,16 @@ import {
   StoragePurchasedInsertData,
   StorageDelistedInsertData,
 } from '../types/marketplace-events.types';
+import { WalrusService } from '../../walrus/walrus.service';
 
 @Injectable()
 export class DatabaseOperationsService {
   private readonly logger = new Logger(DatabaseOperationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly walrusService: WalrusService,
+  ) {}
 
   /**
    * Process StorageListed event
@@ -229,12 +233,30 @@ export class DatabaseOperationsService {
   }
 
   /**
-   * Get all current listings
+   * Get all current listings (excluding expired storage)
    */
   async getAllListedStorage() {
+    // Get current epoch from Walrus
+    const systemState = await this.walrusService.getSystemState();
+    const currentEpoch = Number(systemState.epoch);
+
+    this.logger.debug(
+      `Fetching listings with endEpoch >= ${currentEpoch} (current epoch)`,
+    );
+
+    // Filter out expired storage objects (endEpoch < currentEpoch)
     const listings = await this.prisma.listedStorage.findMany({
+      where: {
+        endEpoch: {
+          gte: currentEpoch, // Only include storage that hasn't expired
+        },
+      },
       orderBy: { listedAt: 'desc' },
     });
+
+    this.logger.debug(
+      `Found ${listings.length} non-expired listings (current epoch: ${currentEpoch})`,
+    );
 
     // Convert BigInt fields to strings for JSON serialization
     return listings.map((listing) => ({

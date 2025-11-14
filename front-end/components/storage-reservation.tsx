@@ -17,6 +17,7 @@ import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { ConnectButton, useSuiClient, useCurrentAccount } from "@mysten/dapp-kit";
 import { useWalrusEpoch } from "@/hooks/useWalrusEpoch";
 import { useStorageOptimizer } from "@/hooks/useStorageOptimizer";
+import { useWalBalance } from "@/hooks/useWalBalance";
 import { formatWalPrice } from "@/lib/utils/storagePrice";
 import { useNetworkVariable } from "@/lib/config/sui";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +46,7 @@ export default function StorageReservation() {
   const { isConnected } = useWalletConnection();
   const { epoch: currentEpoch, isLoading: isLoadingEpoch } = useWalrusEpoch();
   const { optimize, executePurchase, result: optimizationResult, isLoading: isOptimizing } = useStorageOptimizer();
+  const { balance, isLoading: isLoadingBalance } = useWalBalance();
   const currentAccount = useCurrentAccount();
   const suiClient = useSuiClient();
   const { toast } = useToast();
@@ -104,6 +106,14 @@ export default function StorageReservation() {
     return percentage.toFixed(1);
   }, [optimizationResult]);
 
+  // Check if user has insufficient balance
+  const hasInsufficientBalance = useMemo(() => {
+    if (!optimizationResult?.totalCost || balance === null) return false;
+    // Convert totalCost from FROST to WAL for comparison
+    // 1 WAL = 1,000,000,000 FROST
+    const costInWal = Number(optimizationResult.totalCost) / 1_000_000_000;
+    return balance < costInWal;
+  }, [balance, optimizationResult]);
 
   const handleReserveClick = async () => {
     if (!currentAccount) {
@@ -406,7 +416,7 @@ export default function StorageReservation() {
         <Button
           variant="outline"
           onClick={handleReserveClick}
-          disabled={isExecuting || isOptimizing || !optimizationResult}
+          disabled={isExecuting || isOptimizing || !optimizationResult || isLoadingBalance || hasInsufficientBalance}
           className="w-full rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] h-12 cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0"
         >
           {isExecuting ? (
@@ -419,10 +429,19 @@ export default function StorageReservation() {
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Optimizing...
             </span>
+          ) : hasInsufficientBalance ? (
+            "Insufficient Balance"
           ) : (
             "Reserve Storage"
           )}
         </Button>
+      )}
+
+      {/* Insufficient Balance Warning */}
+      {hasInsufficientBalance && totalCostWal && balance !== null && (
+        <p className="text-xs text-red-500 text-center mt-2 font-semibold">
+          Insufficient WAL balance. Need {totalCostWal} WAL but only have {balance.toFixed(1)} WAL
+        </p>
       )}
 
       {/* Info Text */}
