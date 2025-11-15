@@ -305,10 +305,23 @@ export default function StorageReservation() {
     <div className="backdrop-blur-md bg-[#97f0e5]/5 border-2 border-[#97f0e5] rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]">
       {/* Storage Size Input and Epoch Slider (Combined Row) */}
       <div className="mb-6">
-        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+        {/* Labels Row */}
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-2">
+          <div className="flex-none w-full md:w-1/3">
+            <Label className="text-sm font-bold">STORAGE SIZE</Label>
+          </div>
+          <div className="flex-1 flex justify-between items-center">
+            <Label className="text-sm font-bold">RESERVATION EPOCHS</Label>
+            <span className="text-sm font-bold text-secondary">
+              {epochs[0]} epochs
+            </span>
+          </div>
+        </div>
+
+        {/* Inputs Row - Aligned horizontally */}
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6 md:items-center">
           {/* Left side: Storage Size (1/3) */}
           <div className="flex-none w-full md:w-1/3">
-            <Label className="text-sm font-bold mb-2 block">STORAGE SIZE</Label>
             <div className="flex gap-2">
               <Input
                 type="number"
@@ -332,25 +345,19 @@ export default function StorageReservation() {
             </div>
           </div>
 
-          {/* Right side: Epoch Slider (2/3) */}
-          <div className="flex-1">
-            <div className="flex justify-between items-center mb-2">
-              <Label className="text-sm font-bold">RESERVATION EPOCHS</Label>
-              <span className="text-sm font-bold text-secondary">
-                {epochs[0]} epochs
-              </span>
-            </div>
+          {/* Right side: Epoch Slider (2/3) - Aligned with inputs */}
+          <div className="flex-1 flex flex-col">
             <Slider
               value={epochs}
               onValueChange={setEpochs}
               min={1}
-              max={365}
+              max={53}
               step={1}
               className="w-full"
             />
             <div className="flex justify-between text-xs text-gray-600 mt-1">
               <span>1 epoch</span>
-              <span>365 epochs</span>
+              <span>53 epochs</span>
             </div>
           </div>
         </div>
@@ -407,40 +414,42 @@ export default function StorageReservation() {
       <OperationsGraph optimizationResult={optimizationResult} />
 
       {/* Buy Button */}
-      {!isConnected ? (
-        <ConnectButton
-          connectText={
-            <span className="flex items-center font-bold">
-              <Lock className="mr-2 h-4 w-4 text-secondary" />
-              Connect to reserve space
-            </span>
-          }
-          className="!w-full !rounded-xl !border-2 !border-[#97f0e5] !font-bold !shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] !h-12 !cursor-pointer hover:!bg-[#97f0e5]/10 hover:!shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:!translate-x-[2px] hover:!translate-y-[2px] !transition-all !bg-white !text-black !text-base !px-4 !py-2 [&>*]:!font-bold"
-        />
-      ) : (
-        <Button
-          variant="outline"
-          onClick={handleReserveClick}
-          disabled={isExecuting || isOptimizing || !optimizationResult || isLoadingBalance || hasInsufficientBalance}
-          className="w-full rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] h-12 cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0"
-        >
-          {isExecuting ? (
-            <span className="flex items-center">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Executing Transaction...
-            </span>
-          ) : isOptimizing ? (
-            <span className="flex items-center">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Optimizing...
-            </span>
-          ) : hasInsufficientBalance ? (
-            "Insufficient Balance"
-          ) : (
-            "Reserve Storage"
-          )}
-        </Button>
-      )}
+      <div className="flex justify-center">
+        {!isConnected ? (
+          <ConnectButton
+            connectText={
+              <span className="flex items-center font-bold">
+                <Lock className="mr-2 h-4 w-4 text-secondary" />
+                Connect to reserve space
+              </span>
+            }
+            className="!max-w-xs !w-full !rounded-xl !border-2 !border-[#97f0e5] !font-bold !shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] !h-10 !cursor-pointer hover:!bg-[#97f0e5]/10 hover:!shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:!translate-x-[2px] hover:!translate-y-[2px] !transition-all !bg-white !text-black !text-base !px-4 !py-2 [&>*]:!font-bold"
+          />
+        ) : (
+          <Button
+            variant="outline"
+            onClick={handleReserveClick}
+            disabled={isExecuting || isOptimizing || !optimizationResult || isLoadingBalance || hasInsufficientBalance}
+            className="max-w-xs w-full rounded-xl border-2 border-[#97f0e5] font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] h-10 cursor-pointer hover:bg-[#97f0e5]/10 hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0"
+          >
+            {isExecuting ? (
+              <span className="flex items-center">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Executing Transaction...
+              </span>
+            ) : isOptimizing ? (
+              <span className="flex items-center">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Optimizing...
+              </span>
+            ) : hasInsufficientBalance ? (
+              "Insufficient Balance"
+            ) : (
+              "Reserve Storage"
+            )}
+          </Button>
+        )}
+      </div>
 
       {/* Insufficient Balance Warning */}
       {hasInsufficientBalance && totalCostWal && balance !== null && (

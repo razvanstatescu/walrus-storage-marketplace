@@ -5,11 +5,10 @@ import Link from "next/link";
 import { AppShell } from "@/components/layouts/AppShell";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { WalletTable } from "@/components/wallet-table";
+import { MyListingsTable } from "@/components/my-listings-table";
 import { DelistStorageButton } from "@/components/DelistStorageButton";
 import { useMarketplaceListings } from "@/hooks/useMarketplaceListings";
 import { useWalrusEpoch } from "@/hooks/useWalrusEpoch";
-import type { WalletItem } from "@/types/storage";
 
 // Helper function to format storage size using Walrus SDK formula
 const BYTES_PER_UNIT_SIZE = 1024 * 1024; // 1 MiB
@@ -50,8 +49,8 @@ export default function MyListingsPage() {
 
   const { epoch: currentEpoch } = useWalrusEpoch();
 
-  // Convert listings to wallet items for table display
-  const listingItems: WalletItem[] = useMemo(
+  // Convert listings to items for table display
+  const listingItems = useMemo(
     () =>
       listings.map((listing) => ({
         id: listing.storageId,
@@ -59,6 +58,8 @@ export default function MyListingsPage() {
         size: formatStorageSize(listing.size),
         startEpoch: listing.startEpoch,
         endEpoch: listing.endEpoch,
+        price: formatWalPrice(listing.totalPrice),
+        listedAt: listing.listedAt,
       })),
     [listings]
   );
@@ -174,11 +175,13 @@ export default function MyListingsPage() {
               </div>
             </div>
           ) : (
-            <WalletTable
+            <MyListingsTable
               items={listingItems}
               selectedItems={selectedListingIds}
               onSelectionChange={handleSelectionChange}
               currentEpoch={currentEpoch}
+              isLoading={isLoading}
+              error={error}
             />
           )}
         </div>
