@@ -85,11 +85,14 @@ export class BackendClient {
 
       const data = await response.json();
 
-      // Transform the response to match our PaginatedListings type
+      // Parse date strings to Date objects to match TypeScript types
       return {
-        data: data.listings || data.data || [],
-        nextCursor: data.nextCursor || null,
-        hasMore: data.hasMore || false,
+        ...data,
+        data: data.data.map((listing: any) => ({
+          ...listing,
+          listedAt: new Date(listing.listedAt),
+          lastUpdatedAt: new Date(listing.lastUpdatedAt),
+        })),
       };
     } catch (error) {
       if (error instanceof BackendError) {

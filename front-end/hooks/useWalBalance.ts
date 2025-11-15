@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useSuiClient } from '@mysten/dapp-kit'
-import { useNetworkVariable } from '@/lib/config/sui'
+import { useStorewaveSDK } from './useStorewaveSDK'
+import { frostToWal } from 'storewave-sdk'
 import { useWalletConnection } from './useWalletConnection'
 
 /**
@@ -40,8 +40,7 @@ export interface WalBalanceState {
  * ```
  */
 export const useWalBalance = (): WalBalanceState => {
-  const suiClient = useSuiClient()
-  const walTokenType = useNetworkVariable('walTokenType')
+  const sdk = useStorewaveSDK()
   const { address, isConnected } = useWalletConnection()
 
   const [balance, setBalance] = useState<number | null>(null)
@@ -63,15 +62,11 @@ export const useWalBalance = (): WalBalanceState => {
       setIsLoading(true)
       setError(null)
 
-      // Fetch balance for the WAL token type
-      const balanceResult = await suiClient.getBalance({
-        owner: address,
-        coinType: walTokenType,
-      })
+      // Fetch balance using SDK (returns FROST)
+      const balanceInFrost = await sdk.getWalBalance(address)
 
-      // Convert from FROST to WAL
-      // Conversion rate: 1 WAL = 1,000,000,000 FROST
-      const walBalance = Number(balanceResult.totalBalance) / 1_000_000_000
+      // Convert from FROST to WAL using SDK utility
+      const walBalance = frostToWal(balanceInFrost)
 
       setBalance(walBalance)
     } catch (err) {
@@ -86,7 +81,7 @@ export const useWalBalance = (): WalBalanceState => {
   // Fetch balance on mount and when address/connection changes
   useEffect(() => {
     fetchBalance()
-  }, [address, isConnected, walTokenType])
+  }, [address, isConnected])
 
   // Auto-refresh every 10 seconds when connected
   useEffect(() => {
@@ -97,7 +92,7 @@ export const useWalBalance = (): WalBalanceState => {
     }, 10_000) // 10 seconds
 
     return () => clearInterval(interval)
-  }, [isConnected, address, walTokenType])
+  }, [isConnected, address, fetchBalance])
 
   return {
     balance,

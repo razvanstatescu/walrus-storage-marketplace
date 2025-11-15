@@ -93,14 +93,22 @@ export class IndexerController {
    * Get all current listings (optionally filtered by seller)
    */
   @Get('listings')
-  async getAllListings(@Query('seller') seller?: string) {
+  async getAllListings(
+    @Query('seller') seller?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
     try {
-      if (seller) {
-        const listings = await this.dbOps.getListingsBySeller(seller);
-        return listings;
-      }
-      const listings = await this.dbOps.getAllListedStorage();
-      return listings;
+      const limitNum = limit ? parseInt(limit, 10) : 50;
+      const result = seller
+        ? await this.dbOps.getListingsBySeller(seller, cursor, limitNum)
+        : await this.dbOps.getAllListedStorage(cursor, limitNum);
+
+      return {
+        data: result.listings,
+        nextCursor: result.nextCursor,
+        hasMore: result.hasMore,
+      };
     } catch (error) {
       throw new HttpException(
         'Failed to fetch listings',

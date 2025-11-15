@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
-import { useNetworkVariable } from "@/lib/config/sui";
+import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useStorewaveSDK } from "./useStorewaveSDK";
 import type { WalrusBlob, BlobState } from "@/types/storage";
 
 export const useWalletBlobs = () => {
   const currentAccount = useCurrentAccount();
-  const suiClient = useSuiClient();
-  const blobObjectType = useNetworkVariable("blobObjectType");
+  const sdk = useStorewaveSDK();
   const loadedRef = useRef(false);
 
   const [state, setState] = useState<BlobState>({
@@ -35,44 +34,14 @@ export const useWalletBlobs = () => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        const result = await suiClient.getOwnedObjects({
-          owner: currentAccount.address,
-          filter: {
-            StructType: blobObjectType,
-          },
-          options: {
-            showContent: true,
-            showType: true,
-          },
+        const result = await sdk.getWalletBlobs({
+          address: currentAccount.address,
           cursor: reset ? undefined : state.cursor || undefined,
           limit: 20,
         });
 
-        // Parse blob objects
-        const parsedObjects: WalrusBlob[] = result.data
-          .filter((obj) => obj.data?.content && "fields" in obj.data.content)
-          .map((obj) => {
-            const fields = (obj.data!.content as any).fields;
-            const storageFields = fields.storage?.fields || {};
-
-            return {
-              objectId: obj.data!.objectId,
-              blobId: fields.blob_id || "",
-              size: BigInt(fields.size || 0),
-              encodingType: Number(fields.encoding_type || 0),
-              registeredEpoch: Number(fields.registered_epoch || 0),
-              certifiedEpoch: fields.certified_epoch
-                ? Number(fields.certified_epoch)
-                : null,
-              deletable: Boolean(fields.deletable),
-              storage: {
-                objectId: storageFields.id?.id || "",
-                startEpoch: Number(storageFields.start_epoch || 0),
-                endEpoch: Number(storageFields.end_epoch || 0),
-                storageSize: BigInt(storageFields.storage_size || 0),
-              },
-            };
-          });
+        // SDK returns already-parsed blob objects
+        const parsedObjects: WalrusBlob[] = result.data;
 
         setState((prev) => ({
           objects: reset
@@ -80,7 +49,7 @@ export const useWalletBlobs = () => {
             : [...prev.objects, ...parsedObjects],
           isLoading: false,
           error: null,
-          hasMore: result.hasNextPage,
+          hasMore: result.hasMore,
           cursor: result.nextCursor,
         }));
 
@@ -94,7 +63,7 @@ export const useWalletBlobs = () => {
         }));
       }
     },
-    [currentAccount, suiClient, blobObjectType, state.cursor]
+    [currentAccount, sdk, state.cursor]
   );
 
   const loadMore = useCallback(() => {

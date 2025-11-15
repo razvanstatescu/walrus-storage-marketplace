@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSuiClient } from "@mysten/dapp-kit";
-import { getCurrentEpoch } from "@/lib/utils/walrus";
+import { useStorewaveSDK } from "./useStorewaveSDK";
 
 interface WalrusEpochState {
   epoch: number | null;
@@ -35,7 +34,7 @@ export function useWalrusEpoch(options?: {
   refreshInterval?: number;
 }) {
   const { autoRefresh = true, refreshInterval = 30000 } = options || {};
-  const suiClient = useSuiClient();
+  const sdk = useStorewaveSDK();
   const [state, setState] = useState<WalrusEpochState>({
     epoch: null,
     isLoading: false,
@@ -43,13 +42,13 @@ export function useWalrusEpoch(options?: {
   });
 
   /**
-   * Fetch the current epoch
+   * Fetch the current epoch using SDK
    */
   const fetchEpoch = useCallback(async () => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const epoch = await getCurrentEpoch(suiClient);
+      const epoch = await sdk.getCurrentEpoch();
 
       setState({
         epoch,
@@ -70,7 +69,7 @@ export function useWalrusEpoch(options?: {
 
       throw error;
     }
-  }, [suiClient]);
+  }, [sdk]);
 
   /**
    * Refresh the epoch

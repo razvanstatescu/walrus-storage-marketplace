@@ -62,14 +62,20 @@ export interface WalrusBlob {
  * Listed storage on the marketplace
  */
 export interface ListedStorage {
+  /** Database ID (UUID) */
+  id: string;
+
   /** Object ID of the storage being sold */
   storageId: string;
 
   /** Address of the seller */
   seller: string;
 
-  /** Size of the storage in bytes */
-  size: bigint;
+  /** Price per size per epoch in FROST */
+  pricePerSizePerEpoch: string;
+
+  /** Size of the storage in bytes (as string for JSON compatibility) */
+  size: string;
 
   /** Starting epoch for the storage period */
   startEpoch: number;
@@ -77,14 +83,20 @@ export interface ListedStorage {
   /** Ending epoch for the storage period */
   endEpoch: number;
 
-  /** Total price in FROST (smallest WAL unit) */
-  totalPrice: bigint;
+  /** Total price in FROST (smallest WAL unit, as string for JSON compatibility) */
+  totalPrice: string;
 
   /** When the storage was listed */
   listedAt: Date;
 
   /** Last time the listing was updated */
   lastUpdatedAt: Date;
+
+  /** Transaction digest of the last update */
+  lastTxDigest: string;
+
+  /** Event sequence number of the last update */
+  lastEventSeq: string;
 }
 
 /**

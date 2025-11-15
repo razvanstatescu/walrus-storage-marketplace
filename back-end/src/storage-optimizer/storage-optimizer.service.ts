@@ -47,11 +47,11 @@ export class StorageOptimizerService {
       }
 
       // 1. Fetch marketplace listings from database
-      const listings = await this.databaseOpsService.getAllListedStorage();
-      this.logger.log(`Found ${listings.length} marketplace listings`);
+      const listingsResult = await this.databaseOpsService.getAllListedStorage();
+      this.logger.log(`Found ${listingsResult.listings.length} marketplace listings`);
 
       // 2. Convert Prisma ListedStorage to StorageObject format
-      const storageObjects: StorageObject[] = listings.map((listing) => ({
+      const storageObjects: StorageObject[] = listingsResult.listings.map((listing) => ({
         id: listing.storageId,
         startEpoch: listing.startEpoch,
         endEpoch: listing.endEpoch,

@@ -6,6 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  transpilePackages: ['storewave-sdk'],
   serverExternalPackages: ['@mysten/walrus'],
 }
 

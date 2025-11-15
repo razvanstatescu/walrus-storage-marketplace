@@ -39,7 +39,6 @@ export function MyListingsTable({
   currentEpoch = null,
 }: MyListingsTableProps) {
   const [internalSelectedItems, setInternalSelectedItems] = useState<string[]>([]);
-
   // Use external selection if provided, otherwise use internal state
   const selectedItems = externalSelectedItems !== undefined ? externalSelectedItems : internalSelectedItems;
   const setSelectedItems = onSelectionChange || setInternalSelectedItems;
@@ -167,11 +166,10 @@ export function MyListingsTable({
                         checked={selectedItems.includes(item.id)}
                         onCheckedChange={() => toggleItem(item.id)}
                         aria-label={`Select ${item.objectId}`}
-                        className={`cursor-pointer ${
-                          expired
-                            ? "border-2 !border-red-500 data-[state=checked]:!bg-red-500 data-[state=checked]:!text-white data-[state=checked]:!border-red-500"
-                            : "border-2 !border-[#97f0e5] data-[state=checked]:!bg-[#97f0e5] data-[state=checked]:!text-black data-[state=checked]:!border-[#97f0e5]"
-                        }`}
+                        className={`cursor-pointer ${expired
+                          ? "border-2 !border-red-500 data-[state=checked]:!bg-red-500 data-[state=checked]:!text-white data-[state=checked]:!border-red-500"
+                          : "border-2 !border-[#97f0e5] data-[state=checked]:!bg-[#97f0e5] data-[state=checked]:!text-black data-[state=checked]:!border-[#97f0e5]"
+                          }`}
                       />
                     </TableCell>
                     <TableCell className="font-mono text-sm">

@@ -5,6 +5,7 @@
 import { SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
 import type { CoinStruct } from '@mysten/sui/client';
+import { WalrusClient } from '@mysten/walrus';
 import { getNetworkConfig, type NetworkConfig } from './config/networks.js';
 import { DEFAULT_PAGINATION_LIMIT, MAX_PAGINATION_LIMIT } from './config/constants.js';
 import { BackendClient } from './api/backend-client.js';
@@ -74,6 +75,7 @@ export class WalStorageMarketplace {
   public readonly network: Network;
   private config: NetworkConfig;
   private backendClient: BackendClient;
+  private walrusClient: WalrusClient | null = null;
 
   /**
    * Create a new WalStorageMarketplace instance
@@ -99,25 +101,28 @@ export class WalStorageMarketplace {
   }
 
   /**
+   * Get or create the WalrusClient instance (lazy initialization)
+   * @private
+   */
+  private getWalrusClient(): WalrusClient {
+    if (!this.walrusClient) {
+      this.walrusClient = new WalrusClient({
+        network: this.network,
+        suiClient: this.suiClient,
+      });
+    }
+    return this.walrusClient;
+  }
+
+  /**
    * Get the current Walrus epoch
    *
    * @returns Current epoch number
    */
   async getCurrentEpoch(): Promise<number> {
-    const systemState = await this.suiClient.getObject({
-      id: this.config.walrusSystemObjectId,
-      options: { showContent: true },
-    });
-
-    if (
-      !systemState.data?.content ||
-      systemState.data.content.dataType !== 'moveObject'
-    ) {
-      throw new Error('Failed to fetch Walrus system state');
-    }
-
-    const fields = systemState.data.content.fields as any;
-    return Number(fields.epoch || fields.current_epoch || 0);
+    const walrusClient = this.getWalrusClient();
+    const systemState = await walrusClient.systemState();
+    return systemState.committee.epoch;
   }
 
   /**

@@ -235,7 +235,7 @@ export class DatabaseOperationsService {
   /**
    * Get all current listings (excluding expired storage)
    */
-  async getAllListedStorage() {
+  async getAllListedStorage(cursor?: string, limit: number = 50) {
     // Get current epoch from Walrus
     const systemState = await this.walrusService.getSystemState();
     const currentEpoch = Number(systemState.epoch);
@@ -252,36 +252,65 @@ export class DatabaseOperationsService {
         },
       },
       orderBy: { listedAt: 'desc' },
+      take: limit + 1, // Fetch one extra to determine if there are more
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1, // Skip the cursor item itself
+      }),
     });
 
     this.logger.debug(
       `Found ${listings.length} non-expired listings (current epoch: ${currentEpoch})`,
     );
 
+    // Check if there are more results
+    const hasMore = listings.length > limit;
+    const paginatedListings = hasMore ? listings.slice(0, limit) : listings;
+    const nextCursor = hasMore ? paginatedListings[paginatedListings.length - 1].id : null;
+
     // Convert BigInt fields to strings for JSON serialization
-    return listings.map((listing) => ({
-      ...listing,
-      pricePerSizePerEpoch: listing.pricePerSizePerEpoch.toString(),
-      size: listing.size.toString(),
-      totalPrice: listing.totalPrice.toString(),
-    }));
+    return {
+      listings: paginatedListings.map((listing) => ({
+        ...listing,
+        pricePerSizePerEpoch: listing.pricePerSizePerEpoch.toString(),
+        size: listing.size.toString(),
+        totalPrice: listing.totalPrice.toString(),
+      })),
+      nextCursor,
+      hasMore,
+    };
   }
 
   /**
    * Get listings by seller address
    */
-  async getListingsBySeller(sellerAddress: string) {
+  async getListingsBySeller(sellerAddress: string, cursor?: string, limit: number = 50) {
     const listings = await this.prisma.listedStorage.findMany({
       where: { seller: sellerAddress },
       orderBy: { listedAt: 'desc' },
+      take: limit + 1, // Fetch one extra to determine if there are more
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1, // Skip the cursor item itself
+      }),
     });
 
+    // Check if there are more results
+    const hasMore = listings.length > limit;
+    const paginatedListings = hasMore ? listings.slice(0, limit) : listings;
+    const nextCursor = hasMore ? paginatedListings[paginatedListings.length - 1].id : null;
+
     // Convert BigInt fields to strings for JSON serialization
-    return listings.map((listing) => ({
-      ...listing,
-      size: listing.size.toString(),
-      totalPrice: listing.totalPrice.toString(),
-    }));
+    return {
+      listings: paginatedListings.map((listing) => ({
+        ...listing,
+        pricePerSizePerEpoch: listing.pricePerSizePerEpoch.toString(),
+        size: listing.size.toString(),
+        totalPrice: listing.totalPrice.toString(),
+      })),
+      nextCursor,
+      hasMore,
+    };
   }
 
   /**

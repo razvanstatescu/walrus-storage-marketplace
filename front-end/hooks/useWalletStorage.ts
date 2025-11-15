@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
-import { useNetworkVariable } from "@/lib/config/sui";
+import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useStorewaveSDK } from "./useStorewaveSDK";
 import type { WalrusStorage, StorageState } from "@/types/storage";
 
 export const useWalletStorage = () => {
   const currentAccount = useCurrentAccount();
-  const suiClient = useSuiClient();
-  const storageObjectType = useNetworkVariable("storageObjectType");
+  const sdk = useStorewaveSDK();
   const loadedRef = useRef(false);
 
   const [state, setState] = useState<StorageState>({
@@ -35,31 +34,14 @@ export const useWalletStorage = () => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        const result = await suiClient.getOwnedObjects({
-          owner: currentAccount.address,
-          filter: {
-            StructType: storageObjectType,
-          },
-          options: {
-            showContent: true,
-            showType: true,
-          },
+        const result = await sdk.getWalletStorage({
+          address: currentAccount.address,
           cursor: reset ? undefined : state.cursor || undefined,
           limit: 20,
         });
 
-        // Parse storage objects
-        const parsedObjects: WalrusStorage[] = result.data
-          .filter((obj) => obj.data?.content && "fields" in obj.data.content)
-          .map((obj) => {
-            const fields = (obj.data!.content as any).fields;
-            return {
-              objectId: obj.data!.objectId,
-              storageSize: BigInt(fields.storage_size || fields.size || 0),
-              startEpoch: Number(fields.start_epoch || 0),
-              endEpoch: Number(fields.end_epoch || 0),
-            };
-          });
+        // SDK returns already-parsed objects
+        const parsedObjects: WalrusStorage[] = result.data;
 
         setState((prev) => ({
           objects: reset
@@ -67,7 +49,7 @@ export const useWalletStorage = () => {
             : [...prev.objects, ...parsedObjects],
           isLoading: false,
           error: null,
-          hasMore: result.hasNextPage,
+          hasMore: result.hasMore,
           cursor: result.nextCursor,
         }));
 
@@ -81,7 +63,7 @@ export const useWalletStorage = () => {
         }));
       }
     },
-    [currentAccount, suiClient, storageObjectType, state.cursor]
+    [currentAccount, sdk, state.cursor]
   );
 
   const loadMore = useCallback(() => {

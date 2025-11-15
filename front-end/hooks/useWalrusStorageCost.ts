@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useSuiClient } from "@mysten/dapp-kit";
-import { calculateStorageCost } from "@/lib/utils/walrus";
+import { useStorewaveSDK } from "./useStorewaveSDK";
 import type {
   StorageCostParams,
   StorageCostResult,
@@ -11,6 +10,7 @@ import type {
 
 /**
  * React hook for calculating Walrus storage costs
+ * Now uses SDK which provides both optimized (marketplace + system) and system-only costs
  *
  * @returns Object containing the calculation function, loading state, error state, and result
  *
@@ -40,7 +40,7 @@ import type {
  * ```
  */
 export function useWalrusStorageCost() {
-  const suiClient = useSuiClient();
+  const sdk = useStorewaveSDK();
   const [state, setState] = useState<StorageCostState>({
     result: null,
     isLoading: false,
@@ -49,6 +49,7 @@ export function useWalrusStorageCost() {
 
   /**
    * Calculate the storage cost for given parameters
+   * Uses SDK's getReservationCost which returns system-only cost for backward compatibility
    *
    * @param params - Storage cost parameters
    * @param params.size - Size of the data in bytes
@@ -61,7 +62,17 @@ export function useWalrusStorageCost() {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        const result = await calculateStorageCost(suiClient, params);
+        // Use SDK to get reservation cost (includes optimization + system-only)
+        const costData = await sdk.getReservationCost({
+          size: params.size,
+          sizeUnit: 'bytes',
+          durationInEpochs: params.epochs,
+        });
+
+        // Return system-only cost for backward compatibility
+        const result: StorageCostResult = {
+          storageCost: costData.systemOnlyRoute.totalCostInFrost,
+        };
 
         setState({
           result,
@@ -83,7 +94,7 @@ export function useWalrusStorageCost() {
         throw error;
       }
     },
-    [suiClient]
+    [sdk]
   );
 
   /**
@@ -101,12 +112,16 @@ export function useWalrusStorageCost() {
 
       try {
         const results = await Promise.all(
-          items.map((item) =>
-            calculateStorageCost(suiClient, {
+          items.map(async (item) => {
+            const costData = await sdk.getReservationCost({
               size: item.sizeBytes,
-              epochs: item.epochs,
-            })
-          )
+              sizeUnit: 'bytes',
+              durationInEpochs: item.epochs,
+            });
+            return {
+              storageCost: costData.systemOnlyRoute.totalCostInFrost,
+            };
+          })
         );
 
         setState({
@@ -129,7 +144,7 @@ export function useWalrusStorageCost() {
         throw error;
       }
     },
-    [suiClient]
+    [sdk]
   );
 
   /**

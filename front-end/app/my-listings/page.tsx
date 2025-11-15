@@ -44,7 +44,9 @@ export default function MyListingsPage() {
     listings,
     isLoading,
     error,
+    hasMore,
     refetch,
+    loadMore,
   } = useMarketplaceListings();
 
   const { epoch: currentEpoch } = useWalrusEpoch();
@@ -52,13 +54,13 @@ export default function MyListingsPage() {
   // Convert listings to items for table display
   const listingItems = useMemo(
     () =>
-      listings.map((listing) => ({
+      (listings || []).map((listing) => ({
         id: listing.storageId,
         objectId: listing.storageId,
-        size: formatStorageSize(listing.size),
+        size: formatStorageSize(BigInt(listing.size)),
         startEpoch: listing.startEpoch,
         endEpoch: listing.endEpoch,
-        price: formatWalPrice(listing.totalPrice),
+        price: formatWalPrice(BigInt(listing.totalPrice)),
         listedAt: listing.listedAt,
       })),
     [listings]
@@ -119,7 +121,7 @@ export default function MyListingsPage() {
               <div className="text-2xl font-bold mt-1">
                 <span className="text-black">
                   {formatWalPrice(
-                    listings.reduce((sum, l) => sum + l.totalPrice, 0n)
+                    (listings || []).reduce((sum, l) => sum + BigInt(l.totalPrice), 0n)
                   )}
                 </span>{" "}
                 <span className="text-secondary">WAL</span>
@@ -175,14 +177,36 @@ export default function MyListingsPage() {
               </div>
             </div>
           ) : (
-            <MyListingsTable
-              items={listingItems}
-              selectedItems={selectedListingIds}
-              onSelectionChange={handleSelectionChange}
-              currentEpoch={currentEpoch}
-              isLoading={isLoading}
-              error={error}
-            />
+            <>
+              <MyListingsTable
+                items={listingItems}
+                selectedItems={selectedListingIds}
+                onSelectionChange={handleSelectionChange}
+                currentEpoch={currentEpoch}
+                isLoading={isLoading}
+                error={error}
+              />
+
+              {/* Load More Button */}
+              {hasMore && (
+                <div className="flex justify-center mt-6">
+                  <Button
+                    onClick={loadMore}
+                    disabled={isLoading}
+                    className="rounded-xl border-2 border-[#97f0e5] bg-[#97f0e5]/50 font-bold shadow-[4px_4px_0px_0px_rgba(151,240,229,1)] hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent mr-2"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      "Load More"
+                    )}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
 

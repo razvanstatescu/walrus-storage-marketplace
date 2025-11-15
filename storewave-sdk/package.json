@@ -1,6 +1,6 @@
 {
   "name": "storewave-sdk",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "TypeScript SDK for Walrus Storage Marketplace",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -35,8 +35,8 @@
   "author": "Inkray",
   "license": "MIT",
   "dependencies": {
-    "@mysten/sui": "^1.16.0",
-    "@mysten/walrus": "^0.5.0"
+    "@mysten/sui": "^1.44.0",
+    "@mysten/walrus": "^0.8.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -46,5 +46,10 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "overrides": {
+    "@mysten/walrus": {
+      "@mysten/sui": "^1.16.0"
+    }
   }
 }
