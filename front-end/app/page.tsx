@@ -33,13 +33,13 @@ export default function LandingPage() {
             <div className="hidden md:flex items-center gap-6">
               <a
                 href="#features"
-                className="text-gray-700 hover:text-[#97f0e5] transition-colors font-medium"
+                className="text-gray-700 hover:text-secondary transition-colors font-medium"
               >
                 Features
               </a>
               <a
                 href="#sdk"
-                className="text-gray-700 hover:text-[#97f0e5] transition-colors font-medium"
+                className="text-gray-700 hover:text-secondary transition-colors font-medium"
               >
                 SDK
               </a>
@@ -47,7 +47,7 @@ export default function LandingPage() {
                 href="https://www.npmjs.com/package/storewave-sdk"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-700 hover:text-[#97f0e5] transition-colors font-medium"
+                className="text-gray-700 hover:text-secondary transition-colors font-medium"
               >
                 Docs
               </a>
@@ -76,7 +76,7 @@ export default function LandingPage() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full
                             border-2 border-[#97f0e5] bg-[#97f0e5]/10 mb-8">
-              <Sparkles className="w-4 h-4 text-[#97f0e5]" />
+              <Sparkles className="w-4 h-4 text-secondary" />
               <span className="text-sm font-bold">
                 Powered by Walrus Protocol
               </span>
@@ -194,7 +194,7 @@ export default function LandingPage() {
                 className="w-14 h-14 rounded-xl border-2 border-[#97f0e5]
                             bg-[#97f0e5]/10 flex items-center justify-center mb-6"
               >
-                <Shield className="w-8 h-8 text-[#97f0e5]" />
+                <Shield className="w-8 h-8 text-secondary" />
               </div>
               <h3 className="text-2xl font-black mb-3">
                 True Decentralization
@@ -218,7 +218,7 @@ export default function LandingPage() {
                 className="w-14 h-14 rounded-xl border-2 border-[#97f0e5]
                             bg-[#97f0e5]/10 flex items-center justify-center mb-6"
               >
-                <ShoppingCart className="w-8 h-8 text-[#97f0e5]" />
+                <ShoppingCart className="w-8 h-8 text-secondary" />
               </div>
               <h3 className="text-2xl font-black mb-3">
                 Storage Marketplace
@@ -242,7 +242,7 @@ export default function LandingPage() {
                 className="w-14 h-14 rounded-xl border-2 border-[#97f0e5]
                             bg-[#97f0e5]/10 flex items-center justify-center mb-6"
               >
-                <Zap className="w-8 h-8 text-[#97f0e5]" />
+                <Zap className="w-8 h-8 text-secondary" />
               </div>
               <h3 className="text-2xl font-black mb-3">Lightning Fast</h3>
               <p className="text-gray-600">
@@ -287,7 +287,7 @@ export default function LandingPage() {
               <div className="space-y-4 mb-8">
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full border-2 border-[#97f0e5] bg-[#97f0e5]/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <div className="w-2 h-2 rounded-full bg-[#97f0e5]"></div>
+                    <div className="w-2 h-2 rounded-full bg-secondary"></div>
                   </div>
                   <div>
                     <h4 className="font-bold mb-1">Type-Safe API</h4>
@@ -299,7 +299,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full border-2 border-[#97f0e5] bg-[#97f0e5]/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <div className="w-2 h-2 rounded-full bg-[#97f0e5]"></div>
+                    <div className="w-2 h-2 rounded-full bg-secondary"></div>
                   </div>
                   <div>
                     <h4 className="font-bold mb-1">Easy Integration</h4>
@@ -310,7 +310,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full border-2 border-[#97f0e5] bg-[#97f0e5]/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <div className="w-2 h-2 rounded-full bg-[#97f0e5]"></div>
+                    <div className="w-2 h-2 rounded-full bg-secondary"></div>
                   </div>
                   <div>
                     <h4 className="font-bold mb-1">Comprehensive Docs</h4>
@@ -353,26 +353,26 @@ export default function LandingPage() {
               </div>
               <pre className="text-sm sm:text-base overflow-x-auto">
                 <code className="text-gray-100">
-                  <span className="text-purple-400">npm install</span>{" "}
+                  <span className="text-secondary">npm install</span>{" "}
                   <span className="text-[#97f0e5]">storewave-sdk</span>
                   {"\n\n"}
                   <span className="text-gray-500">// Import the SDK</span>
                   {"\n"}
-                  <span className="text-purple-400">import</span>{" "}
+                  <span className="text-secondary">import</span>{" "}
                   <span className="text-yellow-300">{"{"}</span>{" "}
                   <span className="text-[#97f0e5]">WalStorageMarketplace</span>{" "}
                   <span className="text-yellow-300">{"}"}</span>
                   {"\n"}
-                  <span className="text-purple-400">from</span>{" "}
+                  <span className="text-secondary">from</span>{" "}
                   <span className="text-green-400">'storewave-sdk'</span>;
                   {"\n\n"}
                   <span className="text-gray-500">
                     // Initialize SDK for testnet
                   </span>
                   {"\n"}
-                  <span className="text-purple-400">const</span>{" "}
+                  <span className="text-secondary">const</span>{" "}
                   <span className="text-blue-300">sdk</span> ={" "}
-                  <span className="text-purple-400">new</span>{" "}
+                  <span className="text-secondary">new</span>{" "}
                   <span className="text-yellow-300">
                     WalStorageMarketplace
                   </span>
@@ -383,9 +383,9 @@ export default function LandingPage() {
                     // Calculate storage reservation cost
                   </span>
                   {"\n"}
-                  <span className="text-purple-400">const</span>{" "}
+                  <span className="text-secondary">const</span>{" "}
                   <span className="text-blue-300">costData</span> ={" "}
-                  <span className="text-purple-400">await</span> sdk.
+                  <span className="text-secondary">await</span> sdk.
                   <span className="text-yellow-300">getReservationCost</span>(
                   <span className="text-yellow-300">{"{"}</span>
                   {"\n"}

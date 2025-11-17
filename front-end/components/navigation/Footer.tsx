@@ -25,7 +25,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/buy-storage"
-                  className="text-gray-600 hover:text-[#97f0e5] transition-colors text-sm"
+                  className="text-gray-600 hover:text-secondary transition-colors text-sm"
                 >
                   Buy Storage
                 </Link>
@@ -33,7 +33,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/my-listings"
-                  className="text-gray-600 hover:text-[#97f0e5] transition-colors text-sm"
+                  className="text-gray-600 hover:text-secondary transition-colors text-sm"
                 >
                   Marketplace
                 </Link>
@@ -41,7 +41,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/wallet"
-                  className="text-gray-600 hover:text-[#97f0e5] transition-colors text-sm"
+                  className="text-gray-600 hover:text-secondary transition-colors text-sm"
                 >
                   My Wallet
                 </Link>
@@ -58,7 +58,7 @@ export function Footer() {
                   href="https://www.npmjs.com/package/storewave-sdk"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-[#97f0e5] transition-colors text-sm"
+                  className="text-gray-600 hover:text-secondary transition-colors text-sm"
                 >
                   SDK Documentation
                 </a>
@@ -68,7 +68,7 @@ export function Footer() {
                   href="https://github.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-[#97f0e5] transition-colors text-sm"
+                  className="text-gray-600 hover:text-secondary transition-colors text-sm"
                 >
                   GitHub
                 </a>
@@ -78,7 +78,7 @@ export function Footer() {
                   href="https://www.walrus.xyz"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-[#97f0e5] transition-colors text-sm"
+                  className="text-gray-600 hover:text-secondary transition-colors text-sm"
                 >
                   About Walrus
                 </a>
