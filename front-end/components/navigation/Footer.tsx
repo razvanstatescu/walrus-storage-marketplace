@@ -24,10 +24,10 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="/"
+                  href="/buy-storage"
                   className="text-gray-600 hover:text-[#97f0e5] transition-colors text-sm"
                 >
-                  Dashboard
+                  Buy Storage
                 </Link>
               </li>
               <li>

@@ -47,7 +47,7 @@ export function Navbar({
   return (
     <header className="border-b-2 border-[#97f0e5] p-4 sm:p-6 bg-white/40 backdrop-blur-md">
       <div className="flex justify-between items-center gap-4">
-        <Link href="/" className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+        <Link href="/buy-storage" className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-80 transition-opacity">
           <Logo size={32} className="sm:w-10 sm:h-10 md:w-12 md:h-12" />
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight">
             {title === "Storewave" ? (

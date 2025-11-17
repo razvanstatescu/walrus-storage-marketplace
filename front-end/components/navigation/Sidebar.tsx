@@ -16,7 +16,7 @@ interface SidebarProps {
 }
 
 const defaultNavItems: NavItem[] = [
-  { href: "/", label: "Buy Storage" },
+  { href: "/buy-storage", label: "Buy Storage" },
   { href: "/wallet", label: "My Wallet" },
   { href: "/my-listings", label: "My Listings" },
 ];

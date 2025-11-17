@@ -18,8 +18,8 @@ interface StudioLayoutProps {
 export function StudioLayout({
   children,
   title = "POSTCRAFT STUDIO",
-  backHref = "/",
-  homeHref = "/",
+  backHref = "/buy-storage",
+  homeHref = "/buy-storage",
   showBackButton = true,
   showHomeButton = true,
 }: StudioLayoutProps) {
