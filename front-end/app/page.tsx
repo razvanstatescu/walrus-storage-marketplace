@@ -360,29 +360,54 @@ export default function LandingPage() {
                   {"\n"}
                   <span className="text-purple-400">import</span>{" "}
                   <span className="text-yellow-300">{"{"}</span>{" "}
-                  <span className="text-[#97f0e5]">StorewaveClient</span>{" "}
+                  <span className="text-[#97f0e5]">WalStorageMarketplace</span>{" "}
                   <span className="text-yellow-300">{"}"}</span>
                   {"\n"}
                   <span className="text-purple-400">from</span>{" "}
                   <span className="text-green-400">'storewave-sdk'</span>;
                   {"\n\n"}
-                  <span className="text-gray-500">// Initialize client</span>
+                  <span className="text-gray-500">
+                    // Initialize SDK for testnet
+                  </span>
                   {"\n"}
                   <span className="text-purple-400">const</span>{" "}
-                  <span className="text-blue-300">client</span> ={" "}
+                  <span className="text-blue-300">sdk</span> ={" "}
                   <span className="text-purple-400">new</span>{" "}
-                  <span className="text-yellow-300">StorewaveClient</span>();
+                  <span className="text-yellow-300">
+                    WalStorageMarketplace
+                  </span>
+                  (
+                  <span className="text-green-400">'testnet'</span>);
                   {"\n\n"}
-                  <span className="text-gray-500">// Upload data</span>
+                  <span className="text-gray-500">
+                    // Calculate storage reservation cost
+                  </span>
                   {"\n"}
                   <span className="text-purple-400">const</span>{" "}
-                  <span className="text-blue-300">result</span> ={" "}
-                  <span className="text-purple-400">await</span>{" "}
-                  client.
-                  <span className="text-yellow-300">upload</span>(
+                  <span className="text-blue-300">costData</span> ={" "}
+                  <span className="text-purple-400">await</span> sdk.
+                  <span className="text-yellow-300">getReservationCost</span>(
+                  <span className="text-yellow-300">{"{"}</span>
                   {"\n"}
-                  {"  "}data
-                  {"\n"});
+                  {"  "}
+                  <span className="text-blue-300">size</span>:{" "}
+                  <span className="text-orange-400">1024</span>,
+                  {"              "}
+                  <span className="text-gray-500">// File size</span>
+                  {"\n"}
+                  {"  "}
+                  <span className="text-blue-300">sizeUnit</span>:{" "}
+                  <span className="text-green-400">'bytes'</span>,
+                  {"       "}
+                  <span className="text-gray-500">// Size unit</span>
+                  {"\n"}
+                  {"  "}
+                  <span className="text-blue-300">durationInEpochs</span>:{" "}
+                  <span className="text-orange-400">5</span>
+                  {"      "}
+                  <span className="text-gray-500">// Storage duration</span>
+                  {"\n"}
+                  <span className="text-yellow-300">{"}"}</span>);
                 </code>
               </pre>
             </div>

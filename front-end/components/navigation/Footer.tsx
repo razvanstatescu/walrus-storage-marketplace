@@ -46,14 +46,6 @@ export function Footer() {
                   My Wallet
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/studio"
-                  className="text-gray-600 hover:text-[#97f0e5] transition-colors text-sm"
-                >
-                  Studio
-                </Link>
-              </li>
             </ul>
           </div>
 
