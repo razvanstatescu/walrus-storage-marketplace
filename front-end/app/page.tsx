@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/navigation/Footer";
+import { Logo } from "@/components/ui/Logo";
 import {
   ShoppingCart,
   Shield,
@@ -20,7 +21,8 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+              <Logo size={32} className="sm:w-10 sm:h-10" />
               <h1 className="text-2xl font-black">
                 <span className="text-black">Store</span>
                 <span className="text-[#97f0e5]">wave</span>
@@ -76,7 +78,7 @@ export default function LandingPage() {
                             border-2 border-[#97f0e5] bg-[#97f0e5]/10 mb-8">
               <Sparkles className="w-4 h-4 text-[#97f0e5]" />
               <span className="text-sm font-bold">
-                Powered by Walrus Network
+                Powered by Walrus Protocol
               </span>
             </div>
 
