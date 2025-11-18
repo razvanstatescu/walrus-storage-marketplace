@@ -65,7 +65,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="https://github.com"
+                  href="https://github.com/razvanstatescu/walrus-storage-marketplace"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-600 hover:text-secondary transition-colors text-sm"
@@ -108,7 +108,7 @@ export function Footer() {
               <Twitter className="w-5 h-5" />
             </a>
             <a
-              href="https://github.com"
+              href="https://github.com/razvanstatescu/walrus-storage-marketplace"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg border-2 border-[#97f0e5]

@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/navigation/Footer";
 import { Logo } from "@/components/ui/Logo";
 import {
-  ShoppingCart,
-  Shield,
-  Zap,
+  TrendingDown,
+  Wallet,
+  Sliders,
   Code,
   ArrowRight,
   Sparkles,
@@ -44,27 +44,25 @@ export default function LandingPage() {
                 SDK
               </a>
               <a
-                href="https://www.npmjs.com/package/storewave-sdk"
+                href="https://github.com/razvanstatescu/walrus-storage-marketplace/blob/main/README.md"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-700 hover:text-secondary transition-colors font-medium"
               >
-                Docs
+                About
               </a>
-            </div>
-
-            {/* CTA Button */}
-            <Link href="/buy-storage">
-              <Button
-                className="rounded-xl border-2 border-[#97f0e5] font-bold
+              <Link href="/buy-storage">
+                <Button
+                  className="rounded-xl border-2 border-[#97f0e5] font-bold
                            shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]
                            hover:shadow-[2px_2px_0px_0px_rgba(151,240,229,1)]
                            hover:translate-x-[2px] hover:translate-y-[2px]
                            transition-all bg-white hover:bg-[#97f0e5]/10"
-              >
-                Launch App
-              </Button>
-            </Link>
+                >
+                  Launch App
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
@@ -90,10 +88,8 @@ export default function LandingPage() {
             </h1>
 
             {/* Subheadline */}
-            <p className="text-lg sm:text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-              Trade storage capacity, manage your data, and explore the future
-              of Web3 storage. Built on Walrus, the cutting-edge decentralized
-              storage network.
+            <p className="sm:text-lg md:text-xl text-gray-600 mb-10 max-w-4xl mx-auto leading-relaxed font-medium">
+              We turn wasted storage capacity into everyone's instant savings.
             </p>
 
             {/* CTA Buttons */}
@@ -101,12 +97,12 @@ export default function LandingPage() {
               <Link href="/buy-storage">
                 <Button
                   size="lg"
+                  variant="outline"
                   className="rounded-xl border-2 border-[#97f0e5] font-bold text-lg
                              shadow-[6px_6px_0px_0px_rgba(151,240,229,1)]
                              hover:shadow-[3px_3px_0px_0px_rgba(151,240,229,1)]
                              hover:translate-x-[3px] hover:translate-y-[3px]
-                             transition-all bg-[#97f0e5] hover:bg-[#97f0e5]/90
-                             text-black px-8 py-6"
+                             transition-all bg-white hover:bg-[#97f0e5]/10 px-8 py-6"
                 >
                   Get Started <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
@@ -139,7 +135,7 @@ export default function LandingPage() {
                   <div className="text-4xl sm:text-5xl font-black text-[#97f0e5] mb-2">
                     100+
                   </div>
-                  <div className="text-gray-600 font-medium">
+                  <div className="text-secondary text-xs font-bold uppercase">
                     Storage Providers
                   </div>
                 </div>
@@ -147,16 +143,20 @@ export default function LandingPage() {
                   <div className="text-4xl sm:text-5xl font-black text-[#97f0e5] mb-2">
                     1TB+
                   </div>
-                  <div className="text-gray-600 font-medium">
+                  <div className="text-secondary text-xs font-bold uppercase">
                     Available Storage
                   </div>
                 </div>
                 <div>
-                  <div className="text-4xl sm:text-5xl font-black text-[#97f0e5] mb-2">
-                    24/7
+                  <div className="flex items-center justify-center mb-2">
+                    <img
+                      src="/walrus.svg"
+                      alt="Walrus Protocol"
+                      className="h-12 w-auto"
+                    />
                   </div>
-                  <div className="text-gray-600 font-medium">
-                    Network Uptime
+                  <div className="text-secondary text-xs font-bold uppercase">
+                    Built On
                   </div>
                 </div>
               </div>
@@ -175,14 +175,13 @@ export default function LandingPage() {
               <span className="text-[#97f0e5]">Storewave</span>
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Experience the next generation of decentralized storage with
-              powerful features built for Web3
+              Turning Walrus storage into a liquid, tradeable asset for the first time.
             </p>
           </div>
 
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Feature 1: Decentralized Storage */}
+            {/* Feature 1: Always Get the Lowest Price */}
             <div
               className="backdrop-blur-md bg-white/80 border-2 border-[#97f0e5]
                           rounded-xl shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]
@@ -194,19 +193,19 @@ export default function LandingPage() {
                 className="w-14 h-14 rounded-xl border-2 border-[#97f0e5]
                             bg-[#97f0e5]/10 flex items-center justify-center mb-6"
               >
-                <Shield className="w-8 h-8 text-secondary" />
+                <TrendingDown className="w-8 h-8 text-secondary" />
               </div>
               <h3 className="text-2xl font-black mb-3">
-                True Decentralization
+                Always Get the Lowest Price
               </h3>
               <p className="text-gray-600">
-                Your data is distributed across the Walrus network, ensuring no
-                single point of failure. Enjoy enterprise-grade reliability with
-                Web3 principles.
+                Our intelligent algorithm automatically finds the cheapest way to
+                buy storage by comparing marketplace deals against system prices
+                in real-time. Save up to 50% instantly.
               </p>
             </div>
 
-            {/* Feature 2: Marketplace */}
+            {/* Feature 2: Turn Unused Storage Into Cash */}
             <div
               className="backdrop-blur-md bg-white/80 border-2 border-[#97f0e5]
                           rounded-xl shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]
@@ -218,19 +217,19 @@ export default function LandingPage() {
                 className="w-14 h-14 rounded-xl border-2 border-[#97f0e5]
                             bg-[#97f0e5]/10 flex items-center justify-center mb-6"
               >
-                <ShoppingCart className="w-8 h-8 text-secondary" />
+                <Wallet className="w-8 h-8 text-secondary" />
               </div>
               <h3 className="text-2xl font-black mb-3">
-                Storage Marketplace
+                Turn Unused Storage Into Cash
               </h3>
               <p className="text-gray-600">
-                Buy and sell storage capacity in a peer-to-peer marketplace.
-                Monetize unused storage or find the perfect capacity for your
-                needs.
+                List your overprovisioned or unused storage on the marketplace
+                and recoup your investment. Stop losing money on wasted capacity
+                or deleted blobs.
               </p>
             </div>
 
-            {/* Feature 3: Lightning Fast */}
+            {/* Feature 3: Buy Exactly What You Need */}
             <div
               className="backdrop-blur-md bg-white/80 border-2 border-[#97f0e5]
                           rounded-xl shadow-[4px_4px_0px_0px_rgba(151,240,229,1)]
@@ -242,13 +241,13 @@ export default function LandingPage() {
                 className="w-14 h-14 rounded-xl border-2 border-[#97f0e5]
                             bg-[#97f0e5]/10 flex items-center justify-center mb-6"
               >
-                <Zap className="w-8 h-8 text-secondary" />
+                <Sliders className="w-8 h-8 text-secondary" />
               </div>
-              <h3 className="text-2xl font-black mb-3">Lightning Fast</h3>
+              <h3 className="text-2xl font-black mb-3">Buy Exactly What You Need</h3>
               <p className="text-gray-600">
-                Powered by cutting-edge technology, Walrus delivers
-                blazing-fast upload and retrieval speeds. Experience Web2
-                performance with Web3 security.
+                Purchase storage by exact size and duration—not rigid system
+                packages. Flexible splitting means you only pay for what you
+                actually use. Zero waste, perfect allocation.
               </p>
             </div>
           </div>
@@ -328,12 +327,12 @@ export default function LandingPage() {
               >
                 <Button
                   size="lg"
+                  variant="outline"
                   className="rounded-xl border-2 border-[#97f0e5] font-bold text-lg
                              shadow-[6px_6px_0px_0px_rgba(151,240,229,1)]
                              hover:shadow-[3px_3px_0px_0px_rgba(151,240,229,1)]
                              hover:translate-x-[3px] hover:translate-y-[3px]
-                             transition-all bg-[#97f0e5] hover:bg-[#97f0e5]/90
-                             text-black px-8"
+                             transition-all bg-white hover:bg-[#97f0e5]/10 px-8"
                 >
                   View on NPM <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
