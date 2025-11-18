@@ -17,6 +17,7 @@ async function bootstrap() {
     origin: [
       'http://localhost:3001', // Frontend dev server
       'http://localhost:3000',
+      'https://storewave.xyz',
       process.env.FRONTEND_URL, // Optional: Add production URL via env
     ].filter(Boolean),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
