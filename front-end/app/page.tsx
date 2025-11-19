@@ -12,8 +12,33 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
+import { useMarketplaceAnalytics } from "@/hooks/useMarketplaceAnalytics";
+
+// Helper function to format storage size
+const BYTES_PER_UNIT_SIZE = 1024 * 1024; // 1 MiB
+
+const formatStorageSize = (bytesStr: string): { value: string; unit: string } => {
+  const bytes = BigInt(bytesStr);
+  const sizeInBytes = Number(bytes);
+  const units = Math.ceil(sizeInBytes / BYTES_PER_UNIT_SIZE);
+
+  const mib = units;
+  const gib = mib / 1024;
+  const tib = gib / 1024;
+
+  if (tib >= 1) {
+    return { value: tib.toFixed(2), unit: "TiB" };
+  }
+  if (gib >= 1) {
+    return { value: gib.toFixed(2), unit: "GiB" };
+  }
+  return { value: mib.toLocaleString(), unit: "MiB" };
+};
 
 export default function LandingPage() {
+  // Fetch marketplace analytics data
+  const { analytics, isLoading, error } = useMarketplaceAnalytics();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* Navbar */}
@@ -133,18 +158,35 @@ export default function LandingPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
                 <div>
                   <div className="text-4xl sm:text-5xl font-black text-[#97f0e5] mb-2">
-                    100+
+                    {isLoading || !analytics ? (
+                      <span className="animate-pulse">...</span>
+                    ) : error ? (
+                      "100+"
+                    ) : (
+                      analytics.totalActiveListings.toLocaleString()
+                    )}
                   </div>
                   <div className="text-secondary text-xs font-bold uppercase">
-                    Storage Providers
+                    Active Listings
                   </div>
                 </div>
                 <div>
                   <div className="text-4xl sm:text-5xl font-black text-[#97f0e5] mb-2">
-                    1TB+
+                    {isLoading || !analytics ? (
+                      <span className="animate-pulse">...</span>
+                    ) : error ? (
+                      "1TB+"
+                    ) : (
+                      <>
+                        {formatStorageSize(analytics.totalSizeListed).value}{" "}
+                        <span className="text-3xl sm:text-4xl">
+                          {formatStorageSize(analytics.totalSizeListed).unit}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div className="text-secondary text-xs font-bold uppercase">
-                    Available Storage
+                    Storage Listed
                   </div>
                 </div>
                 <div>
